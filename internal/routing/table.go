@@ -53,7 +53,7 @@ func (t *Table) AddOrUpdate(c *Contact) {
 	if err := c.Validate(); err != nil {
 		t.logger.Debug("contact rejected",
 			"reason", "validate",
-			"node_id", logging.ShortBytes(c.NodeID[:]),
+			"contact_id", logging.ShortBytes(c.NodeID[:]),
 			"err", err.Error(),
 		)
 		return
@@ -62,7 +62,7 @@ func (t *Table) AddOrUpdate(c *Contact) {
 	if idx < 0 {
 		t.logger.Debug("contact rejected",
 			"reason", "no bucket",
-			"node_id", logging.ShortBytes(c.NodeID[:]),
+			"contact_id", logging.ShortBytes(c.NodeID[:]),
 		)
 		return
 	}
@@ -74,7 +74,7 @@ func (t *Table) AddOrUpdate(c *Contact) {
 		if !bytes.Equal(existing.IdentityPublicKey, c.IdentityPublicKey) {
 			t.logger.Warn("contact key mismatch, rejected",
 				"bucket", idx,
-				"node_id", logging.ShortBytes(c.NodeID[:]),
+				"contact_id", logging.ShortBytes(c.NodeID[:]),
 			)
 			t.mu.Unlock()
 			return
@@ -86,7 +86,7 @@ func (t *Table) AddOrUpdate(c *Contact) {
 		b.MoveToEnd(i)
 		t.logger.Debug("contact updated",
 			"bucket", idx,
-			"node_id", logging.ShortBytes(c.NodeID[:]),
+			"contact_id", logging.ShortBytes(c.NodeID[:]),
 			"addr", existing.Addr(),
 		)
 		t.mu.Unlock()
@@ -98,7 +98,7 @@ func (t *Table) AddOrUpdate(c *Contact) {
 		b.Append(c)
 		t.logger.Debug("contact added",
 			"bucket", idx,
-			"node_id", logging.ShortBytes(c.NodeID[:]),
+			"contact_id", logging.ShortBytes(c.NodeID[:]),
 			"bucket_size", b.Len(),
 		)
 		t.mu.Unlock()
@@ -110,7 +110,7 @@ func (t *Table) AddOrUpdate(c *Contact) {
 	if t.pinger == nil {
 		t.logger.Debug("bucket full, no pinger, contact dropped",
 			"bucket", idx,
-			"node_id", logging.ShortBytes(c.NodeID[:]),
+			"contact_id", logging.ShortBytes(c.NodeID[:]),
 		)
 		return
 	}
@@ -172,4 +172,13 @@ func (t *Table) AllContacts() []*Contact {
 		all = append(all, b.contacts...)
 	}
 	return all
+}
+
+// Reset удаляет все контакты из таблицы.
+func (t *Table) Reset() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for i := range t.buckets {
+		t.buckets[i] = newBucket(t.k)
+	}
 }

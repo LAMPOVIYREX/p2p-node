@@ -54,10 +54,19 @@ func TestT2_13_MultiHopLookup(t *testing.T) {
 		t.Fatalf("d bootstrap: %v", err)
 	}
 
-	// Проверяем не «a не знает d», а что a не знает d напрямую —
-	// что в таблице a нет контакта, ведущего прямо на d.
-	// В малой сети bootstrap и self-lookup могут привести к тому,
-	// что a узнаёт d; это корректно, а требование T2.13 — про lookup.
+	// Сброс таблицы a: воспроизводим требование T2.13 —
+	// у инициатора нет цели в начальной таблице.
+	// Оставляем только b — единственный путь к сети.
+	a.table.Reset()
+	a.table.AddOrUpdate(b.SelfContact())
+
+	// Убеждаемся, что d действительно не в таблице a.
+	for _, ct := range a.table.AllContacts() {
+		if ct.NodeID == d.self.NodeID {
+			t.Fatal("d still present in a's table after reset")
+		}
+	}
+
 	res := a.LookupNode(d.self.NodeID)
 	if !res.Success {
 		t.Fatalf("lookup failed: success=%v rpc=%d iter=%d closest=%d",
