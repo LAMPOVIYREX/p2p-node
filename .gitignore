@@ -1,0 +1,14 @@
+state/
+*.key
+identity.key
+bin/
+*.test
+*.out
+*.exe
+results/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+*.swp
+docs_do/

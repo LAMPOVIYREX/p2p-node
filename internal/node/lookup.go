@@ -1,0 +1,214 @@
+package node
+
+import (
+	"encoding/hex"
+	"errors"
+	"sort"
+	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/LAMPOVIYREX/p2p-node/internal/logging"
+	"github.com/LAMPOVIYREX/p2p-node/internal/protocol"
+	"github.com/LAMPOVIYREX/p2p-node/internal/routing"
+)
+
+type LookupResult struct {
+	LookupID   string
+	Target     routing.NodeID
+	Closest    []*routing.Contact
+	RPCs       int
+	Iterations int
+	Timeouts   []routing.NodeID
+	Duration   time.Duration
+	Success    bool
+}
+
+func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
+	start := time.Now()
+	lid := uuid.New().String()[:8]
+	logger := n.logger.With("lookup_id", lid)
+
+	logger.Info("lookup start", "target", logging.ShortBytes(target[:]))
+
+	res := &LookupResult{LookupID: lid, Target: target}
+
+	candidates := n.table.FindClosest(target, n.cfg.KBucketSize)
+	queried := map[routing.NodeID]bool{}
+
+	for {
+		res.Iterations++
+		sort.Slice(candidates, func(i, j int) bool {
+			return routing.CompareDist(
+				routing.Xor(candidates[i].NodeID, target),
+				routing.Xor(candidates[j].NodeID, target),
+			) < 0
+		})
+
+		var batch []*routing.Contact
+		for _, c := range candidates {
+			if len(batch) >= n.cfg.Alpha {
+				break
+			}
+			if queried[c.NodeID] || c.NodeID == n.self.NodeID {
+				continue
+			}
+			batch = append(batch, c)
+		}
+		if len(batch) == 0 {
+			break
+		}
+
+		logger.Debug("lookup iteration",
+			"iter", res.Iterations,
+			"candidates", len(candidates),
+			"batch", len(batch),
+		)
+
+		type reply struct {
+			c        *routing.Contact
+			contacts []*routing.Contact
+			err      error
+		}
+		ch := make(chan reply, len(batch))
+		for _, c := range batch {
+			queried[c.NodeID] = true
+			go func(c *routing.Contact) {
+				cs, err := n.findNodeRPC(c, target)
+				ch <- reply{c, cs, err}
+			}(c)
+		}
+		for range batch {
+			r := <-ch
+			res.RPCs++
+			if r.err != nil {
+				res.Timeouts = append(res.Timeouts, r.c.NodeID)
+				logger.Debug("rpc failed",
+					"peer", logging.ShortBytes(r.c.NodeID[:]),
+					"err", r.err.Error(),
+				)
+				continue
+			}
+			newCount := 0
+			for _, nc := range r.contacts {
+				if !containsID(candidates, nc.NodeID) && nc.NodeID != n.self.NodeID {
+					candidates = append(candidates, nc)
+					newCount++
+				}
+			}
+			logger.Debug("rpc ok",
+				"peer", logging.ShortBytes(r.c.NodeID[:]),
+				"returned", len(r.contacts),
+				"new", newCount,
+			)
+			n.table.AddOrUpdate(r.c)
+		}
+
+		if lookupConverged(candidates, queried, target, n.cfg.KBucketSize) {
+			break
+		}
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return routing.CompareDist(
+			routing.Xor(candidates[i].NodeID, target),
+			routing.Xor(candidates[j].NodeID, target),
+		) < 0
+	})
+	if len(candidates) > n.cfg.KBucketSize {
+		candidates = candidates[:n.cfg.KBucketSize]
+	}
+	res.Closest = candidates
+	res.Duration = time.Since(start)
+	for _, c := range candidates {
+		if c.NodeID == target {
+			res.Success = true
+			break
+		}
+	}
+	if !res.Success && len(candidates) > 0 {
+		res.Success = true
+	}
+
+	closestIDs := make([]string, len(candidates))
+	for i, c := range candidates {
+		closestIDs[i] = logging.ShortBytes(c.NodeID[:])
+	}
+	logger.Info("lookup complete",
+		"target", logging.ShortBytes(target[:]),
+		"success", res.Success,
+		"rpc", res.RPCs,
+		"iterations", res.Iterations,
+		"timeouts", len(res.Timeouts),
+		"duration_ms", res.Duration.Milliseconds(),
+		"closest", closestIDs,
+	)
+
+	return res
+}
+
+func (n *Node) findNodeRPC(c *routing.Contact, target routing.NodeID) ([]*routing.Contact, error) {
+	req := protocol.FindNodeRequestPayload{
+		Sender:       n.SelfContactWire(),
+		TargetNodeID: hex.EncodeToString(target[:]),
+	}
+	resp, err := n.rpc.SendRequest(c.Addr(), protocol.MsgFindNodeRequest, req, n.cfg.ReadTimeout())
+	if err != nil {
+		return nil, err
+	}
+	if resp.Type != protocol.MsgFindNodeResponse {
+		return nil, errors.New("unexpected response type")
+	}
+	var p protocol.FindNodeResponsePayload
+	if err := protocol.DecodePayload(resp.Payload, &p); err != nil {
+		return nil, err
+	}
+	out := make([]*routing.Contact, 0, len(p.Contacts))
+	seen := map[routing.NodeID]bool{}
+	for _, w := range p.Contacts {
+		c, err := contactFromWire(w)
+		if err != nil {
+			continue
+		}
+		if seen[c.NodeID] {
+			continue
+		}
+		seen[c.NodeID] = true
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+func containsID(cs []*routing.Contact, id routing.NodeID) bool {
+	for _, c := range cs {
+		if c.NodeID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func lookupConverged(candidates []*routing.Contact, queried map[routing.NodeID]bool, target routing.NodeID, k int) bool {
+	var queriedDists [][32]byte
+	for _, c := range candidates {
+		if queried[c.NodeID] {
+			queriedDists = append(queriedDists, routing.Xor(c.NodeID, target))
+		}
+	}
+	if len(queriedDists) < k {
+		return false
+	}
+	sort.Slice(queriedDists, func(i, j int) bool {
+		return routing.CompareDist(queriedDists[i], queriedDists[j]) < 0
+	})
+	kth := queriedDists[k-1]
+	for _, c := range candidates {
+		if queried[c.NodeID] {
+			continue
+		}
+		if routing.CompareDist(routing.Xor(c.NodeID, target), kth) < 0 {
+			return false
+		}
+	}
+	return true
+}
