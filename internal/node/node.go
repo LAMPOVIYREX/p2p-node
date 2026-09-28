@@ -112,6 +112,11 @@ func (n *Node) Run(ctx context.Context) error {
 func (n *Node) Wait(ctx context.Context) {
 	<-ctx.Done()
 	n.logger.Info("shutting down", "table_size", len(n.table.AllContacts()))
+	if path, err := n.SaveTableDump(); err != nil {
+		n.logger.Warn("shutdown table dump failed", "err", err.Error())
+	} else {
+		n.logger.Debug("shutdown table saved", "path", path)
+	}
 	if n.server != nil {
 		_ = n.server.Close()
 	}

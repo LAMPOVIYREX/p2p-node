@@ -46,6 +46,7 @@ func (d *Dispatcher) Dispatch(ctx *ConnContext, f *transport.Frame) {
 func (d *Dispatcher) sendError(ctx *ConnContext, rid [16]byte, code, msg string) {
 	payload, err := protocol.EncodePayload(protocol.ErrorPayload{Code: code, Message: msg})
 	if err != nil {
+		_ = ctx.Conn.Close()
 		return
 	}
 	resp := &transport.Frame{
@@ -54,5 +55,8 @@ func (d *Dispatcher) sendError(ctx *ConnContext, rid [16]byte, code, msg string)
 		RequestID: rid,
 		Payload:   payload,
 	}
+	// Пытаемся отправить ERROR, после чего закрываем соединение —
+	// требование 10: нарушение протокола закрывает соединение.
 	_ = ctx.Conn.WriteFrame(resp, 3*time.Second)
+	_ = ctx.Conn.Close()
 }

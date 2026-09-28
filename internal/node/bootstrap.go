@@ -52,6 +52,14 @@ func (n *Node) Bootstrap(peers []string) error {
 			"duration_ms", res.Duration.Milliseconds(),
 			"table_size", len(n.table.AllContacts()),
 		)
+
+		// Требование 22.2 п.6: сохранить итоговое состояние таблицы
+		// после bootstrap. Ошибка сохранения не критична — просто логируем.
+		if path, err := n.SaveTableDump(); err != nil {
+			n.logger.Warn("post-bootstrap table dump failed", "err", err.Error())
+		} else {
+			n.logger.Debug("post-bootstrap table saved", "path", path)
+		}
 		return nil
 	}
 	return ErrNoBootstrapReachable
