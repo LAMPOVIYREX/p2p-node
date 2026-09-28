@@ -1,39 +1,60 @@
 #!/usr/bin/env bash
+# Запускает 21 узел по схеме star.
+# Seed (node-01) — без bootstrap, остальные подключаются к 127.0.0.1:9101.
 set -euo pipefail
 
 TOPO=star
 N=21
 BIN=./bin/node
-LOGDIR="./results/$TOPO/logs"
-STATEDIR="./state/$TOPO"
+CFGDIR=./configs
+STATEDIR=./state
+LOGDIR=./results/$TOPO/logs
 
-mkdir -p "$LOGDIR" "$STATEDIR"
+mkdir -p "$LOGDIR"
 
 if [ ! -x "$BIN" ]; then
+    echo "building $BIN"
     go build -o "$BIN" ./cmd/node
 fi
 
-if [ ! -f "configs/$TOPO/node-01.yaml" ]; then
-    bash scripts/gen_configs.sh "$TOPO"
+if [ ! -f "$CFGDIR/node-01.yaml" ]; then
+    echo "configs missing, generating"
+    bash scripts/gen_configs.sh
 fi
 
-# seed
-nohup "$BIN" --config "configs/$TOPO/node-01.yaml" \
+# Чистим прошлое состояние
+pkill -f 'bin/node' 2>/dev/null || true
+sleep 1
+rm -rf "$STATEDIR"
+
+echo "==> starting node-01 (seed)"
+nohup "$BIN" --config "$CFGDIR/node-01.yaml" \
     > "$LOGDIR/node-01.log" 2>&1 &
 echo $! > "$STATEDIR/node-01.pid"
-echo "started node-01 (seed, no bootstrap)"
-
 sleep 2
 
 for i in $(seq -w 2 $N); do
-    nohup "$BIN" --config "configs/$TOPO/node-$i.yaml" \
+    nohup "$BIN" --config "$CFGDIR/node-$i.yaml" \
         > "$LOGDIR/node-$i.log" 2>&1 &
     echo $! > "$STATEDIR/node-$i.pid"
-    echo "started node-$i"
+    echo "started node-$i (pid $(cat "$STATEDIR/node-$i.pid"))"
     sleep 0.3
 done
+
+echo
+echo "==> wait 30s for convergence"
+sleep 30
+
+echo "==> dumps"
+for i in $(seq -w 1 $N); do
+    pidfile="$STATEDIR/node-$i.pid"
+    [ -f "$pidfile" ] || continue
+    kill -USR1 "$(cat "$pidfile")" 2>/dev/null || true
+done
+sleep 1
 
 echo
 echo "Topology: $TOPO"
 echo "Logs:     $LOGDIR"
 echo "PIDs:     $STATEDIR/*.pid"
+echo "Tables:   $STATEDIR/node-*/table.json"

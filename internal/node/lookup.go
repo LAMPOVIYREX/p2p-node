@@ -28,7 +28,6 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 	start := time.Now()
 	lid := uuid.New().String()[:8]
 	logger := n.logger.With("lookup_id", lid)
-
 	logger.Info("lookup start", "target", logging.ShortBytes(target[:]))
 
 	res := &LookupResult{LookupID: lid, Target: target}
@@ -37,7 +36,6 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 	queried := map[routing.NodeID]bool{}
 
 	for {
-		res.Iterations++
 		sort.Slice(candidates, func(i, j int) bool {
 			return routing.CompareDist(
 				routing.Xor(candidates[i].NodeID, target),
@@ -59,6 +57,7 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 			break
 		}
 
+		res.Iterations++
 		logger.Debug("lookup iteration",
 			"iter", res.Iterations,
 			"candidates", len(candidates),
@@ -78,6 +77,7 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 				ch <- reply{c, cs, err}
 			}(c)
 		}
+
 		for range batch {
 			r := <-ch
 			res.RPCs++
@@ -120,6 +120,7 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 	}
 	res.Closest = candidates
 	res.Duration = time.Since(start)
+
 	for _, c := range candidates {
 		if c.NodeID == target {
 			res.Success = true
@@ -143,7 +144,6 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 		"duration_ms", res.Duration.Milliseconds(),
 		"closest", closestIDs,
 	)
-
 	return res
 }
 
@@ -163,6 +163,13 @@ func (n *Node) findNodeRPC(c *routing.Contact, target routing.NodeID) ([]*routin
 	if err := protocol.DecodePayload(resp.Payload, &p); err != nil {
 		return nil, err
 	}
+
+	// Требование 20.2: проверяем, что target_node_id в ответе
+	// совпадает с целевым.
+	if p.TargetNodeID != hex.EncodeToString(target[:]) {
+		return nil, errors.New("target_node_id mismatch in response")
+	}
+
 	out := make([]*routing.Contact, 0, len(p.Contacts))
 	seen := map[routing.NodeID]bool{}
 	for _, w := range p.Contacts {

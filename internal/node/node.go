@@ -171,3 +171,13 @@ func (n *Node) handleOutgoingConn(c *transport.Conn) {
 		n.disp.Dispatch(&rpc.ConnContext{Conn: c}, f)
 	}
 }
+
+func (n *Node) Logger() *slog.Logger {
+	return n.logger
+}
+
+// TableSnapshot возвращает текущий список контактов.
+// Обёртка над routing.Table.AllContacts.
+func (n *Node) TableSnapshot() []*routing.Contact {
+	return n.table.AllContacts()
+}
