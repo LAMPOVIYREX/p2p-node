@@ -96,6 +96,18 @@ func (n *Node) BootstrapPeers() error {
 	return n.Bootstrap(n.cfg.BootstrapPeers)
 }
 
+func (n *Node) Run(ctx context.Context) error {
+	if err := n.Start(); err != nil {
+		return err
+	}
+	go n.HandleSignals(ctx)
+	if err := n.BootstrapPeers(); err != nil {
+		n.logger.Warn("bootstrap failed", "err", err.Error())
+	}
+	n.Wait(ctx)
+	return nil
+}
+
 // Wait блокируется до отмены ctx, затем закрывает сервер.
 func (n *Node) Wait(ctx context.Context) {
 	<-ctx.Done()
@@ -103,18 +115,6 @@ func (n *Node) Wait(ctx context.Context) {
 	if n.server != nil {
 		_ = n.server.Close()
 	}
-}
-
-// Run = Start + BootstrapPeers + Wait.
-func (n *Node) Run(ctx context.Context) error {
-	if err := n.Start(); err != nil {
-		return err
-	}
-	if err := n.BootstrapPeers(); err != nil {
-		n.logger.Warn("bootstrap failed", "err", err.Error())
-	}
-	n.Wait(ctx)
-	return nil
 }
 
 // Addr возвращает реальный адрес слушающего сокета.
