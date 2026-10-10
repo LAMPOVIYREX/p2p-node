@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# Запускает 21 узел по схеме star.
-# Seed (node-01) — без bootstrap, остальные подключаются к 127.0.0.1:9101.
+# Запускает 21 узел по схеме star. Seed — node-01, остальные к 127.0.0.1:9101.
 set -euo pipefail
 
 TOPO=star
 N=21
 BIN=./bin/node
-CFGDIR=./configs
-STATEDIR=./state
+CFGDIR=./configs/$TOPO
+STATEDIR=./state/$TOPO
 LOGDIR=./results/$TOPO/logs
 
 mkdir -p "$LOGDIR"
@@ -19,13 +18,13 @@ fi
 
 if [ ! -f "$CFGDIR/node-01.yaml" ]; then
     echo "configs missing, generating"
-    bash scripts/gen_configs.sh
+    bash scripts/gen_configs.sh "$TOPO"
 fi
 
-# Чистим прошлое состояние
 pkill -f 'bin/node' 2>/dev/null || true
 sleep 1
-rm -rf "$STATEDIR"
+rm -rf "$STATEDIR" "$LOGDIR"
+mkdir -p "$STATEDIR" "$LOGDIR"
 
 echo "==> starting node-01 (seed)"
 nohup "$BIN" --config "$CFGDIR/node-01.yaml" \

@@ -1,0 +1,21 @@
+{
+  "lookup_id": "f9fe6791",
+  "initiator_id": "de355264",
+  "target_hex": "b4cd6b8664b626cea864387aa5f34b6abf7bf2b6900fcbf399f81129b3c2ee96",
+  "success": true,
+  "rpcs": 9,
+  "iterations": 3,
+  "timeouts_hex": [
+    "b938dbb9fb685602218a62bd44eba28bc38d72dc46d0703a237ac5793b8d1d0f"
+  ],
+  "duration_ms": 5,
+  "closest_hex": [
+    "b4cd6b8664b626cea864387aa5f34b6abf7bf2b6900fcbf399f81129b3c2ee96",
+    "bfe2cc4e5575126fd9a425e1cc4b092e71bdaa81530d8df968ebedb1dfe109bf",
+    "b938dbb9fb685602218a62bd44eba28bc38d72dc46d0703a237ac5793b8d1d0f",
+    "a37b2aafde7a01fe519ca944cb9606029bf01e5e8a30cd1bb9d695cea622f1bd"
+  ],
+  "table_size_before": 4,
+  "table_size_after": 8,
+  "timestamp": "2026-10-10T07:06:18Z"
+}

@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
-# Приёмочный сценарий раздела 25.2.
-# Запускать ПОСЛЕ scripts/run_star.sh и после того, как сеть сходилась.
+# Приёмочный сценарий раздела 25.2 для указанной топологии.
+# Usage: demo.sh <topology>   # star | ring
 set -euo pipefail
 
+TOPO="${1:-star}"
 N=21
 BIN=./bin/node
-CFGDIR=./configs
-STATEDIR=./state
-RESULTS=./results/star
+CFGDIR=./configs/$TOPO
+STATEDIR=./state/$TOPO
+RESULTS=./results/$TOPO
 LOGDIR="$RESULTS/logs"
 OUT="$RESULTS/lookup"
+TMPDIR_DEMO="$RESULTS/tmp"
 
-mkdir -p "$OUT/tables"
+case "$TOPO" in
+    star) SEED_PORT=9101 ;;
+    ring) SEED_PORT=9101 ;;
+    *) echo "unknown topology: $TOPO" >&2; exit 1 ;;
+esac
 
+mkdir -p "$OUT/tables" "$TMPDIR_DEMO"
+
+echo "==> topology: $TOPO"
 echo "==> проверка, что сеть работает"
 alive=0
 for i in $(seq -w 1 $N); do
@@ -24,7 +33,7 @@ for i in $(seq -w 1 $N); do
 done
 echo "живых узлов: $alive / $N"
 if [ "$alive" -lt 5 ]; then
-    echo "мало живых узлов, сначала запусти run_star.sh" >&2
+    echo "мало живых узлов, сначала запусти run_${TOPO}.sh" >&2
     exit 1
 fi
 
@@ -42,24 +51,30 @@ for i in $(seq -w 1 $N); do
 done
 
 echo "==> сводная статистика таблиц"
-"$BIN" --dump-tables | tee "$OUT/table-summary.json"
+"$BIN" --dump-tables --state-dir "$STATEDIR" | tee "$OUT/table-summary.json" > /dev/null
 
-echo
-echo "==> выбор инициатора и целей для контрольных lookup"
+echo "==> выбор инициатора и целей"
+make_lookup_cfg() {
+    local out="$1"
+    local bport="$2"
+    cat > "$out" <<EOF
+node_state_dir: $TMPDIR_DEMO/state-$RANDOM-$RANDOM
+listen_host: 127.0.0.1
+listen_port: 0
+bootstrap_peers: ["127.0.0.1:$bport"]
+node_id_bits: 256
+k_bucket_size: 4
+alpha: 3
+connect_timeout_ms: 3000
+read_timeout_ms: 5000
+ping_timeout_ms: 5000
+max_frame_payload: 65536
+protocol_version: 1
+log_level: WARN
+advertise_host: 127.0.0.1
+EOF
+}
 
-# Собираем список self_id всех узлов из дампов.
-mapfile -t all_ids < <(for f in "$OUT"/tables/node-*.json; do
-    jq -r '.self_id' "$f"
-done)
-if [ "${#all_ids[@]}" -lt 2 ]; then
-    echo "недостаточно узлов для lookup" >&2
-    exit 1
-fi
-
-# Инициатор — node-02.
-INITIATOR_CFG="$CFGDIR/node-02.yaml"
-
-# Цели — 10 узлов, начиная с node-05, чтобы не совпали с инициатором.
 targets=()
 for i in $(seq -w 5 $((4 + 10))); do
     f="$STATEDIR/node-$i/table.json"
@@ -67,14 +82,16 @@ for i in $(seq -w 5 $((4 + 10))); do
     targets+=("$(jq -r '.self_id' "$f")")
 done
 
-echo "==> 10 контрольных lookup"
+echo "==> ${#targets[@]} контрольных lookup"
 k=0
 for tgt in "${targets[@]}"; do
     k=$((k + 1))
-    echo "lookup #$k: initiator=node-02 target=${tgt:0:8}…"
-    "$BIN" --config "$INITIATOR_CFG" \
+    cfg="$TMPDIR_DEMO/lookup-$k.yaml"
+    make_lookup_cfg "$cfg" "$SEED_PORT"
+    echo "lookup #$k: target=${tgt:0:8}…"
+    "$BIN" --config "$cfg" \
         --lookup "$tgt" \
-        --wait-ms 3000 \
+        --wait-ms 4000 \
         > "$OUT/lookup-$k.json" 2> "$OUT/lookup-$k.err"
 done
 
@@ -90,9 +107,11 @@ sleep 2
 
 echo "==> контрольный lookup без seed"
 tgt="${targets[0]}"
-"$BIN" --config "$CFGDIR/node-03.yaml" \
+cfg="$TMPDIR_DEMO/lookup-after-seed-down.yaml"
+make_lookup_cfg "$cfg" 9103
+"$BIN" --config "$cfg" \
     --lookup "$tgt" \
-    --wait-ms 1000 \
+    --wait-ms 4000 \
     > "$OUT/lookup-after-seed-down.json" 2> "$OUT/lookup-after-seed-down.err"
 
 echo
@@ -101,4 +120,3 @@ echo "  таблицы:     $OUT/tables/"
 echo "  сводка:      $OUT/table-summary.json"
 echo "  lookups:     $OUT/lookup-*.json"
 echo "  после seed:  $OUT/lookup-after-seed-down.json"
-echo "готово"

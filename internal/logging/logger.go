@@ -20,7 +20,7 @@ func New(level string) *slog.Logger {
 	default:
 		lv = slog.LevelInfo
 	}
-	h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lv})
+	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: lv})
 	return slog.New(h)
 }
 

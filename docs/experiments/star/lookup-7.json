@@ -1,0 +1,23 @@
+{
+  "lookup_id": "e927b002",
+  "initiator_id": "36a34353",
+  "target_hex": "85c32a9542c1958e85d7bb0c10e3253e298103ddde2cb2570daceef886e63bb8",
+  "success": true,
+  "rpcs": 12,
+  "iterations": 4,
+  "timeouts_hex": [
+    "19406b4e00630659d218b964ce7b3e492b828b00ce72ef4662eea1a0afb0a283",
+    "8dde460c53ab952355ef8ebb80221102d51a19db9b460343a5cd026eb0dbbba3",
+    "89767e5c8eb6ac49cb20b97704ec3a2d4b5dc1810e8c55c884c6b843ed73419f"
+  ],
+  "duration_ms": 6,
+  "closest_hex": [
+    "85c32a9542c1958e85d7bb0c10e3253e298103ddde2cb2570daceef886e63bb8",
+    "8dde460c53ab952355ef8ebb80221102d51a19db9b460343a5cd026eb0dbbba3",
+    "89767e5c8eb6ac49cb20b97704ec3a2d4b5dc1810e8c55c884c6b843ed73419f",
+    "a51f960d25bdf62e915e07ac5e7a0418efd689177e8de56b4dac7b8ac974bdde"
+  ],
+  "table_size_before": 4,
+  "table_size_after": 8,
+  "timestamp": "2026-10-10T07:03:16Z"
+}

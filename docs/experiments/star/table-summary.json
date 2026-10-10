@@ -1,0 +1,133 @@
+{
+  "count": 21,
+  "total_size": 177,
+  "avg_size": 8.428571428571429,
+  "nodes": [
+    {
+      "node_short": "746242a4",
+      "self_id": "746242a489f50ff0f8e5ca5ad8a85c4e9cc520c632156a4b9545e50390bc010d",
+      "table_size": 12,
+      "path": "state/star/node-01/table.json"
+    },
+    {
+      "node_short": "5b423e54",
+      "self_id": "5b423e5490f66f9aca5fc0faf6bc2ba83cd51add51b248a9d309115c72faac27",
+      "table_size": 9,
+      "path": "state/star/node-02/table.json"
+    },
+    {
+      "node_short": "3a69e794",
+      "self_id": "3a69e794f334a086549872191e6e1e9ec7721357c05b959c62fe638815775e5a",
+      "table_size": 8,
+      "path": "state/star/node-03/table.json"
+    },
+    {
+      "node_short": "c73e4642",
+      "self_id": "c73e4642c9658b9972bf60fdc7b55a25d1c8c1cba60bbe04849a5c75009ec59c",
+      "table_size": 13,
+      "path": "state/star/node-04/table.json"
+    },
+    {
+      "node_short": "ed0f604a",
+      "self_id": "ed0f604abf4276bf9494b53c01b80e91f06a6760aa683113adbb6c974c05b722",
+      "table_size": 14,
+      "path": "state/star/node-05/table.json"
+    },
+    {
+      "node_short": "fa0a087c",
+      "self_id": "fa0a087c5cbaf397eb39219b2c251d7bf2eb9deed09a18f297a32bf1e05703ee",
+      "table_size": 14,
+      "path": "state/star/node-06/table.json"
+    },
+    {
+      "node_short": "c91a9f75",
+      "self_id": "c91a9f755df8d081dd9827ddddd943883768d6fd6f4b7af9b09452271244d82d",
+      "table_size": 12,
+      "path": "state/star/node-07/table.json"
+    },
+    {
+      "node_short": "7a4beeac",
+      "self_id": "7a4beeac3328d40cbd66c981b96bab4925a2f63de23e6cdd0f1b5fcd522f1dce",
+      "table_size": 8,
+      "path": "state/star/node-08/table.json"
+    },
+    {
+      "node_short": "67d1b007",
+      "self_id": "67d1b00713a21d71d31d9f7eefae0b9904e083124cee9b3c796367031b6f6cda",
+      "table_size": 8,
+      "path": "state/star/node-09/table.json"
+    },
+    {
+      "node_short": "72898671",
+      "self_id": "7289867181251d5534097ea3fc9e595471c0b024e193853c4767caac9efb187f",
+      "table_size": 6,
+      "path": "state/star/node-10/table.json"
+    },
+    {
+      "node_short": "85c32a95",
+      "self_id": "85c32a9542c1958e85d7bb0c10e3253e298103ddde2cb2570daceef886e63bb8",
+      "table_size": 8,
+      "path": "state/star/node-11/table.json"
+    },
+    {
+      "node_short": "70319413",
+      "self_id": "70319413031a92cdfc7b2582020eeaecc11730dcabde085e2fc06266929c02b4",
+      "table_size": 4,
+      "path": "state/star/node-12/table.json"
+    },
+    {
+      "node_short": "2eb1dc53",
+      "self_id": "2eb1dc531dd37cf4b7e7b236603feac70f11540d81d4850433af5924d4a745e7",
+      "table_size": 5,
+      "path": "state/star/node-13/table.json"
+    },
+    {
+      "node_short": "e8621d58",
+      "self_id": "e8621d58c4ed2ae4cd501d9bbfdd94cc8cdb4b59db9134145e7de1d1ae6208fb",
+      "table_size": 9,
+      "path": "state/star/node-14/table.json"
+    },
+    {
+      "node_short": "a2bf1080",
+      "self_id": "a2bf108056f6188ef700812dcc789da24b581cd5d804fbd5d3a949bdb99f8a31",
+      "table_size": 8,
+      "path": "state/star/node-15/table.json"
+    },
+    {
+      "node_short": "fa4eed1b",
+      "self_id": "fa4eed1b2f82d1e6297f23a051200facb775fa98e9dd419772b8077cc5ef527c",
+      "table_size": 6,
+      "path": "state/star/node-16/table.json"
+    },
+    {
+      "node_short": "ccaa5fa0",
+      "self_id": "ccaa5fa0ea7a48333bd5b5e47663318dc02509d3926a8611c559f9d281e88831",
+      "table_size": 7,
+      "path": "state/star/node-17/table.json"
+    },
+    {
+      "node_short": "a51f960d",
+      "self_id": "a51f960d25bdf62e915e07ac5e7a0418efd689177e8de56b4dac7b8ac974bdde",
+      "table_size": 8,
+      "path": "state/star/node-18/table.json"
+    },
+    {
+      "node_short": "ad8324a1",
+      "self_id": "ad8324a1c153b99d8eaa8fd4fe9f9d63bcfb47d450cbf8eab34759f829e855e8",
+      "table_size": 7,
+      "path": "state/star/node-19/table.json"
+    },
+    {
+      "node_short": "c73e823a",
+      "self_id": "c73e823a0f12a183646e3bca076106345a20aa987955d6dd4356ef68ea83478e",
+      "table_size": 6,
+      "path": "state/star/node-20/table.json"
+    },
+    {
+      "node_short": "229875b1",
+      "self_id": "229875b1a9fb963facacf5b3bff99cdef1ef5310f2d93da0723ffb291628c3e9",
+      "table_size": 5,
+      "path": "state/star/node-21/table.json"
+    }
+  ]
+}

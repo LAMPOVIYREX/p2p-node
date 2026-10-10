@@ -23,11 +23,12 @@ func main() {
 	cfgPath := flag.String("config", "", "path to config yaml (daemon or lookup mode)")
 	lookupHex := flag.String("lookup", "", "run single lookup for target NodeID (hex) and exit")
 	dumpAll := flag.Bool("dump-tables", false, "aggregate all state/node-*/table.json and exit")
+	stateDir := flag.String("state-dir", "", "state directory for --dump-tables (default: ./state)")
 	waitMs := flag.Int("wait-ms", 3000, "ms to wait for bootstrap convergence before lookup")
 	flag.Parse()
 
 	if *dumpAll {
-		if err := runDumpTables(); err != nil {
+		if err := runDumpTables(*stateDir); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -160,12 +161,16 @@ type dumpSummary struct {
 	Path      string `json:"path"`
 }
 
-func runDumpTables() error {
-	root, err := os.Getwd()
-	if err != nil {
-		return err
+func runDumpTables(stateDir string) error {
+	base := stateDir
+	if base == "" {
+		root, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		base = filepath.Join(root, "state")
 	}
-	pattern := filepath.Join(root, "state", "node-*", "table.json")
+	pattern := filepath.Join(base, "node-*", "table.json")
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return err
