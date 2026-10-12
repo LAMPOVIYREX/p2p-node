@@ -22,17 +22,19 @@ type pending struct {
 type Client struct {
 	pool    *transport.Pool
 	logger  *slog.Logger
+	version uint8
 	mu      sync.Mutex
 	waiters map[[16]byte]*pending
 }
 
-func NewClient(pool *transport.Pool, logger *slog.Logger) *Client {
+func NewClient(pool *transport.Pool, logger *slog.Logger, version uint8) *Client {
 	if logger == nil {
 		logger = logging.Discard()
 	}
 	return &Client{
 		pool:    pool,
 		logger:  logger,
+		version: version,
 		waiters: make(map[[16]byte]*pending),
 	}
 }
@@ -47,7 +49,7 @@ func (c *Client) SendRequest(addr string, msgType uint8, payload any, timeout ti
 	copy(rid[:], id[:])
 
 	f := &transport.Frame{
-		Version:   transport.ProtocolVersion,
+		Version:   c.version,
 		Type:      msgType,
 		RequestID: rid,
 		Payload:   plBytes,

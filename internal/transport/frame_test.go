@@ -28,7 +28,7 @@ func TestT1_1_RoundTrip(t *testing.T) {
 	orig := mkFrame(0x01, []byte("hello, world"))
 	b := Encode(orig)
 
-	got, err := Decode(bytes.NewReader(b))
+	got, err := Decode(bytes.NewReader(b), MaxFramePayload, ProtocolVersion)
 	if err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -45,7 +45,7 @@ func TestT1_1_RoundTrip(t *testing.T) {
 func TestT1_2_PartialHeader(t *testing.T) {
 	for n := 0; n < HeaderSize; n++ {
 		r := bytes.NewReader(make([]byte, n))
-		_, err := Decode(r)
+		_, err := Decode(r, MaxFramePayload, ProtocolVersion)
 		if !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {
 			t.Fatalf("n=%d: expected EOF-family, got %v", n, err)
 		}
@@ -57,7 +57,7 @@ func TestT1_3_PartialPayload(t *testing.T) {
 	full := Encode(mkFrame(0x01, make([]byte, 50)))
 	for extra := 0; extra < 50; extra++ {
 		r := bytes.NewReader(full[:HeaderSize+extra])
-		_, err := Decode(r)
+		_, err := Decode(r, MaxFramePayload, ProtocolVersion)
 		if !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {
 			t.Fatalf("extra=%d: expected EOF-family, got %v", extra, err)
 		}
@@ -71,11 +71,11 @@ func TestT1_4_GluedFrames(t *testing.T) {
 	buf := append(Encode(f1), Encode(f2)...)
 
 	r := bytes.NewReader(buf)
-	got1, err := Decode(r)
+	got1, err := Decode(r, MaxFramePayload, ProtocolVersion)
 	if err != nil {
 		t.Fatalf("frame1: %v", err)
 	}
-	got2, err := Decode(r)
+	got2, err := Decode(r, MaxFramePayload, ProtocolVersion)
 	if err != nil {
 		t.Fatalf("frame2: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestT1_5_ArbitrarySplit(t *testing.T) {
 	}()
 
 	for i := 0; i < N; i++ {
-		got, err := Decode(pr)
+		got, err := Decode(pr, MaxFramePayload, ProtocolVersion)
 		if err != nil {
 			t.Fatalf("frame %d: %v", i, err)
 		}
@@ -128,27 +128,58 @@ func TestT1_5_ArbitrarySplit(t *testing.T) {
 	}
 }
 
-// T1.6: payload_length > MAX_FRAME_PAYLOAD отклоняется до аллокации.
+// T1.6: payload_length > maxPayload отклоняется до аллокации.
+// Проверяем как с дефолтным лимитом, так и с конфигурируемым.
 func TestT1_6_OverlongPayload(t *testing.T) {
 	var hdr [HeaderSize]byte
 	hdr[0] = ProtocolVersion
 	hdr[1] = 0x01
 	binary.BigEndian.PutUint32(hdr[20:24], MaxFramePayload+1)
 
-	_, err := Decode(bytes.NewReader(hdr[:]))
+	_, err := Decode(bytes.NewReader(hdr[:]), MaxFramePayload, ProtocolVersion)
 	if !errors.Is(err, ErrPayloadTooLarge) {
-		t.Fatalf("want ErrPayloadTooLarge, got %v", err)
+		t.Fatalf("default limit: want ErrPayloadTooLarge, got %v", err)
+	}
+
+	// Кастомный лимит: maxPayload = 512, кадр с plen = 513 должен отклоняться.
+	binary.BigEndian.PutUint32(hdr[20:24], 513)
+	_, err = Decode(bytes.NewReader(hdr[:]), 512, ProtocolVersion)
+	if !errors.Is(err, ErrPayloadTooLarge) {
+		t.Fatalf("custom limit 512: want ErrPayloadTooLarge, got %v", err)
+	}
+
+	// Кадр с plen = 512 при лимите 512 должен проходить проверку длины
+	// (и упасть дальше на чтении payload, потому что байтов нет).
+	binary.BigEndian.PutUint32(hdr[20:24], 512)
+	_, err = Decode(bytes.NewReader(hdr[:]), 512, ProtocolVersion)
+	if errors.Is(err, ErrPayloadTooLarge) {
+		t.Fatalf("plen == maxPayload should not trigger ErrPayloadTooLarge, got %v", err)
 	}
 }
 
-// T1.7: неизвестная версия протокола.
+// T1.7: неизвестная версия протокола — проверяется и дефолтная, и кастомная.
 func TestT1_7_BadVersion(t *testing.T) {
 	var hdr [HeaderSize]byte
 	hdr[0] = 99
 	hdr[1] = 0x01
-	_, err := Decode(bytes.NewReader(hdr[:]))
+	_, err := Decode(bytes.NewReader(hdr[:]), MaxFramePayload, ProtocolVersion)
 	if !errors.Is(err, ErrBadVersion) {
-		t.Fatalf("want ErrBadVersion, got %v", err)
+		t.Fatalf("default version: want ErrBadVersion, got %v", err)
+	}
+
+	// Кастомная ожидаемая версия: кадр с version=1, ожидаем version=2.
+	hdr[0] = 1
+	_, err = Decode(bytes.NewReader(hdr[:]), MaxFramePayload, 2)
+	if !errors.Is(err, ErrBadVersion) {
+		t.Fatalf("custom version 2: want ErrBadVersion, got %v", err)
+	}
+
+	// Кадр с version=2 и ожидаемой version=2 не должен падать на версии
+	// (упадёт дальше на чтении payload).
+	hdr[0] = 2
+	_, err = Decode(bytes.NewReader(hdr[:]), MaxFramePayload, 2)
+	if errors.Is(err, ErrBadVersion) {
+		t.Fatalf("version match should not trigger ErrBadVersion, got %v", err)
 	}
 }
 
@@ -157,7 +188,7 @@ func TestT1_7_BadVersion(t *testing.T) {
 // Тест фиксирует контракт: Decode обязан вернуть Frame с любым type.
 func TestT1_8_UnknownTypePassesThrough(t *testing.T) {
 	f := mkFrame(0xAB, []byte("x"))
-	got, err := Decode(bytes.NewReader(Encode(f)))
+	got, err := Decode(bytes.NewReader(Encode(f)), MaxFramePayload, ProtocolVersion)
 	if err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -171,7 +202,7 @@ func TestT1_9_BrokenMidFrame(t *testing.T) {
 	full := Encode(mkFrame(0x01, make([]byte, 100)))
 	for extra := 1; extra < 100; extra++ {
 		r := bytes.NewReader(full[:HeaderSize+extra])
-		_, err := Decode(r)
+		_, err := Decode(r, MaxFramePayload, ProtocolVersion)
 		if !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {
 			t.Fatalf("extra=%d: want EOF-family, got %v", extra, err)
 		}

@@ -27,7 +27,7 @@ func TestT1_10_RequestIDCorrelation(t *testing.T) {
 				return
 			}
 			go func(nc net.Conn) {
-				c := transport.NewConn(nc, nil)
+				c := transport.NewConn(nc, nil, transport.MaxFramePayload, transport.ProtocolVersion)
 				for {
 					f, err := c.ReadFrame(2 * time.Second)
 					if err != nil {
@@ -51,8 +51,13 @@ func TestT1_10_RequestIDCorrelation(t *testing.T) {
 		}
 	}()
 
-	pool := transport.NewPool(500*time.Millisecond, nil)
-	cli := rpc.NewClient(pool, nil)
+	pool := transport.NewPool(
+		500*time.Millisecond,
+		nil,
+		transport.MaxFramePayload,
+		transport.ProtocolVersion,
+	)
+	cli := rpc.NewClient(pool, nil, transport.ProtocolVersion)
 
 	// В Node чтение исходящего соединения делает handleOutgoingConn.
 	// В тесте устанавливаем простой reader.

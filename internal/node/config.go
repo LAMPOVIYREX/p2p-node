@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
+	"github.com/LAMPOVIYREX/p2p-node/internal/transport"
 )
 
 type Config struct {
@@ -34,6 +35,20 @@ func LoadConfig(path string) (*Config, error) {
 	if err := yaml.Unmarshal(data, &c); err != nil {
 		return nil, err
 	}
+
+	if c.MaxFramePayload == 0 {
+		c.MaxFramePayload = transport.MaxFramePayload
+	}
+	if c.ProtocolVersion == 0 {
+		c.ProtocolVersion = transport.ProtocolVersion
+	}
+	if c.MaxFramePayload < 256 || c.MaxFramePayload > 16*1024*1024 {
+		return nil, fmt.Errorf("max_frame_payload out of range: %d (must be 256..16777216)", c.MaxFramePayload)
+	}
+	if c.ProtocolVersion < 1 || c.ProtocolVersion > 255 {
+		return nil, fmt.Errorf("protocol_version out of range: %d (must be 1..255)", c.ProtocolVersion)
+	}
+
 	if c.NodeIDBits != 0 && c.NodeIDBits != 256 {
 		return nil, fmt.Errorf("node_id_bits must be 256")
 	}

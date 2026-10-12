@@ -10,21 +10,30 @@ import (
 )
 
 type Pool struct {
-	mu     sync.Mutex
-	conns  map[string]*Conn
-	dialer *net.Dialer
-	logger *slog.Logger
-	onNew  func(*Conn)
+	mu              sync.Mutex
+	conns           map[string]*Conn
+	dialer          *net.Dialer
+	logger          *slog.Logger
+	onNew           func(*Conn)
+	maxPayload      uint32
+	expectedVersion uint8
 }
 
-func NewPool(connectTimeout time.Duration, logger *slog.Logger) *Pool {
+func NewPool(
+	connectTimeout time.Duration,
+	logger *slog.Logger,
+	maxPayload uint32,
+	expectedVersion uint8,
+) *Pool {
 	if logger == nil {
 		logger = logging.Discard()
 	}
 	return &Pool{
-		conns:  make(map[string]*Conn),
-		dialer: &net.Dialer{Timeout: connectTimeout},
-		logger: logger,
+		conns:           make(map[string]*Conn),
+		dialer:          &net.Dialer{Timeout: connectTimeout},
+		logger:          logger,
+		maxPayload:      maxPayload,
+		expectedVersion: expectedVersion,
 	}
 }
 
@@ -50,7 +59,7 @@ func (p *Pool) Get(addr string) (*Conn, error) {
 		p.logger.Warn("dial failed", "addr", addr, "err", err.Error())
 		return nil, err
 	}
-	c := NewConn(nc, p.logger)
+	c := NewConn(nc, p.logger, p.maxPayload, p.expectedVersion)
 
 	p.mu.Lock()
 	if existing, ok := p.conns[addr]; ok {

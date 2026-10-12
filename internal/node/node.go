@@ -37,14 +37,22 @@ func New(cfg *Config, logger *slog.Logger) (*Node, error) {
 		"full_node_id", fmt.Sprintf("%x", id.NodeID),
 	)
 
-	pool := transport.NewPool(cfg.ConnectTimeout(), logging.WithComponent(logger, "transport"))
+	maxPayload := uint32(cfg.MaxFramePayload)
+	version := uint8(cfg.ProtocolVersion)
+
+	pool := transport.NewPool(
+		cfg.ConnectTimeout(),
+		logging.WithComponent(logger, "transport"),
+		maxPayload,
+		version,
+	)
 	n := &Node{
 		cfg:    cfg,
 		self:   id,
 		pool:   pool,
 		logger: logger,
 	}
-	n.rpc = rpc.NewClient(pool, logging.WithComponent(logger, "rpc"))
+	n.rpc = rpc.NewClient(pool, logging.WithComponent(logger, "rpc"), version)
 	n.table = routing.New(
 		id.NodeID, cfg.KBucketSize, n.pingContact,
 		logging.WithComponent(logger, "routing"),
@@ -66,8 +74,11 @@ func New(cfg *Config, logger *slog.Logger) (*Node, error) {
 // сохраняется в n.listenPort и используется в SelfContact.
 func (n *Node) Start() error {
 	srv, err := transport.NewServer(
-		n.cfg.ListenHost, n.cfg.ListenPort,
+		n.cfg.ListenHost,
+		n.cfg.ListenPort,
 		logging.WithComponent(n.logger, "transport"),
+		uint32(n.cfg.MaxFramePayload),
+		uint8(n.cfg.ProtocolVersion),
 		n.handleIncomingConn,
 	)
 	if err != nil {

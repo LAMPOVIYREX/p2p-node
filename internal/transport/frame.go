@@ -8,7 +8,9 @@ import (
 )
 
 const (
-	HeaderSize      = 24
+	HeaderSize = 24
+
+	// Значения по умолчанию, применяются если в конфиге не задано иное.
 	MaxFramePayload = 65536
 	ProtocolVersion = 1
 )
@@ -38,29 +40,37 @@ func Encode(f *Frame) []byte {
 	return buf
 }
 
-func Decode(r io.Reader) (*Frame, error) {
+// Decode читает ровно один кадр из r.
+// maxPayload — максимально допустимая длина payload (из конфига узла).
+// expectedVersion — ожидаемая версия протокола (из конфига узла).
+func Decode(r io.Reader, maxPayload uint32, expectedVersion uint8) (*Frame, error) {
 	var hdr [HeaderSize]byte
 	if _, err := io.ReadFull(r, hdr[:]); err != nil {
 		return nil, err
 	}
+
 	version := hdr[0]
-	if version != ProtocolVersion {
-		return nil, fmt.Errorf("%w: version=%d", ErrBadVersion, version)
+	if version != expectedVersion {
+		return nil, fmt.Errorf("%w: got=%d want=%d", ErrBadVersion, version, expectedVersion)
 	}
+
 	typ := hdr[1]
 	flags := binary.BigEndian.Uint16(hdr[2:4])
 	var rid [16]byte
 	copy(rid[:], hdr[4:20])
 	plen := binary.BigEndian.Uint32(hdr[20:24])
-	if plen > MaxFramePayload {
-		return nil, fmt.Errorf("%w: plen=%d", ErrPayloadTooLarge, plen)
+
+	if plen > maxPayload {
+		return nil, fmt.Errorf("%w: plen=%d max=%d", ErrPayloadTooLarge, plen, maxPayload)
 	}
+
 	payload := make([]byte, plen)
 	if plen > 0 {
 		if _, err := io.ReadFull(r, payload); err != nil {
 			return nil, err
 		}
 	}
+
 	return &Frame{
 		Version:       version,
 		Type:          typ,

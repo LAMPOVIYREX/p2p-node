@@ -107,7 +107,7 @@ func (n *Node) buildFrame(t uint8, rid [16]byte, payload any) *transport.Frame {
 		return nil
 	}
 	return &transport.Frame{
-		Version:   transport.ProtocolVersion,
+		Version:   uint8(n.cfg.ProtocolVersion),
 		Type:      t,
 		RequestID: rid,
 		Payload:   b,

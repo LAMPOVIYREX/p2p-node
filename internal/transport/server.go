@@ -11,12 +11,21 @@ import (
 type ConnHandler func(*Conn)
 
 type Server struct {
-	listener net.Listener
-	handler  ConnHandler
-	logger   *slog.Logger
+	listener        net.Listener
+	handler         ConnHandler
+	logger          *slog.Logger
+	maxPayload      uint32
+	expectedVersion uint8
 }
 
-func NewServer(host string, port int, logger *slog.Logger, onConn ConnHandler) (*Server, error) {
+func NewServer(
+	host string,
+	port int,
+	logger *slog.Logger,
+	maxPayload uint32,
+	expectedVersion uint8,
+	onConn ConnHandler,
+) (*Server, error) {
 	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return nil, err
@@ -25,9 +34,11 @@ func NewServer(host string, port int, logger *slog.Logger, onConn ConnHandler) (
 		logger = logging.Discard()
 	}
 	return &Server{
-		listener: ln,
-		handler:  onConn,
-		logger:   logger,
+		listener:        ln,
+		handler:         onConn,
+		logger:          logger,
+		maxPayload:      maxPayload,
+		expectedVersion: expectedVersion,
 	}, nil
 }
 
@@ -41,7 +52,7 @@ func (s *Server) Serve() {
 			return
 		}
 		s.logger.Debug("incoming connection", "peer", nc.RemoteAddr().String())
-		go s.handler(NewConn(nc, s.logger))
+		go s.handler(NewConn(nc, s.logger, s.maxPayload, s.expectedVersion))
 	}
 }
 

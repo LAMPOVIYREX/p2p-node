@@ -2,6 +2,7 @@ package transport
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"sync"
@@ -11,32 +12,38 @@ import (
 )
 
 type Conn struct {
-	nc     net.Conn
-	mu     sync.Mutex
-	logger *slog.Logger
-	peer   string
+	nc              net.Conn
+	mu              sync.Mutex
+	logger          *slog.Logger
+	peer            string
+	maxPayload      uint32
+	expectedVersion uint8
 }
 
-func NewConn(nc net.Conn, logger *slog.Logger) *Conn {
+func NewConn(nc net.Conn, logger *slog.Logger, maxPayload uint32, expectedVersion uint8) *Conn {
 	peer := nc.RemoteAddr().String()
 	if logger == nil {
 		logger = logging.Discard()
 	}
 	return &Conn{
-		nc:     nc,
-		logger: logger.With("peer", peer),
-		peer:   peer,
+		nc:              nc,
+		logger:          logger.With("peer", peer),
+		peer:            peer,
+		maxPayload:      maxPayload,
+		expectedVersion: expectedVersion,
 	}
 }
 
 func (c *Conn) WriteFrame(f *Frame, timeout time.Duration) error {
+	if uint32(len(f.Payload)) > c.maxPayload {
+		return fmt.Errorf("%w: len=%d max=%d", ErrPayloadTooLarge, len(f.Payload), c.maxPayload)
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if err := c.nc.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
 		return err
 	}
-	_, err := c.nc.Write(Encode(f))
-	if err != nil {
+	if _, err := c.nc.Write(Encode(f)); err != nil {
 		c.logger.Debug("frame send failed",
 			"type", f.Type,
 			"rid", logging.ShortBytes(f.RequestID[:]),
@@ -56,7 +63,7 @@ func (c *Conn) ReadFrame(timeout time.Duration) (*Frame, error) {
 	if err := c.nc.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 		return nil, err
 	}
-	f, err := Decode(c.nc)
+	f, err := Decode(c.nc, c.maxPayload, c.expectedVersion)
 	if err != nil {
 		if isTimeout(err) {
 			c.logger.Debug("frame read timeout")
