@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -161,10 +162,13 @@ func (n *Node) SelfContactWire() protocol.ContactWire {
 
 func (n *Node) handleIncomingConn(c *transport.Conn) {
 	defer c.Close()
-	defer n.logger.Debug("incoming connection closed", "peer", c.RemoteAddr().String())
+	defer n.logger.Debug("incoming connection closed", "peer", c.Peer())
 	for {
 		f, err := c.ReadFrame(n.cfg.ReadTimeout())
 		if err != nil {
+			if isReadTimeout(err) {
+				continue
+			}
 			return
 		}
 		if n.rpc.Deliver(f) {
@@ -175,10 +179,22 @@ func (n *Node) handleIncomingConn(c *transport.Conn) {
 }
 
 func (n *Node) handleOutgoingConn(c *transport.Conn) {
-	defer n.logger.Debug("outgoing connection closed", "peer", c.RemoteAddr().String())
+	// Соединение принадлежит пулу: при выходе из readLoop
+	// оно должно быть закрыто и удалено из пула, иначе следующий
+	// pool.Get вернёт мёртвый сокет.
+	defer func() {
+		_ = c.Close()
+		n.pool.Evict(c.Peer())
+		n.logger.Debug("outgoing connection closed", "peer", c.Peer())
+	}()
 	for {
 		f, err := c.ReadFrame(n.cfg.ReadTimeout())
 		if err != nil {
+			if isReadTimeout(err) {
+				// Тайм-аут чтения не означает, что соединение мертво.
+				// Продолжаем ждать следующего кадра.
+				continue
+			}
 			return
 		}
 		if n.rpc.Deliver(f) {
@@ -187,6 +203,13 @@ func (n *Node) handleOutgoingConn(c *transport.Conn) {
 		n.disp.Dispatch(&rpc.ConnContext{Conn: c}, f)
 	}
 }
+
+func isReadTimeout(err error) bool {
+	var ne net.Error
+	return errors.As(err, &ne) && ne.Timeout()
+}
+
+var _ = fmt.Sprintf
 
 func (n *Node) Logger() *slog.Logger {
 	return n.logger

@@ -2,10 +2,10 @@ package transport
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/LAMPOVIYREX/p2p-node/internal/logging"
@@ -18,6 +18,7 @@ type Conn struct {
 	peer            string
 	maxPayload      uint32
 	expectedVersion uint8
+	closed          atomic.Bool
 }
 
 func NewConn(nc net.Conn, logger *slog.Logger, maxPayload uint32, expectedVersion uint8) *Conn {
@@ -35,8 +36,11 @@ func NewConn(nc net.Conn, logger *slog.Logger, maxPayload uint32, expectedVersio
 }
 
 func (c *Conn) WriteFrame(f *Frame, timeout time.Duration) error {
+	if c.IsClosed() {
+		return net.ErrClosed
+	}
 	if uint32(len(f.Payload)) > c.maxPayload {
-		return fmt.Errorf("%w: len=%d max=%d", ErrPayloadTooLarge, len(f.Payload), c.maxPayload)
+		return ErrPayloadTooLarge
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -80,7 +84,19 @@ func (c *Conn) ReadFrame(timeout time.Duration) (*Frame, error) {
 	return f, nil
 }
 
-func (c *Conn) Close() error         { return c.nc.Close() }
+// Close идемпотентен: повторный вызов ничего не делает.
+// После Close IsClosed() возвращает true.
+func (c *Conn) Close() error {
+	if c.closed.Swap(true) {
+		return nil
+	}
+	return c.nc.Close()
+}
+
+func (c *Conn) IsClosed() bool { return c.closed.Load() }
+
+func (c *Conn) Peer() string { return c.peer }
+
 func (c *Conn) RemoteAddr() net.Addr { return c.nc.RemoteAddr() }
 
 func isTimeout(err error) bool {

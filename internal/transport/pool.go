@@ -46,9 +46,14 @@ func (p *Pool) SetOnNewConn(fn func(*Conn)) {
 func (p *Pool) Get(addr string) (*Conn, error) {
 	p.mu.Lock()
 	if c, ok := p.conns[addr]; ok {
-		p.mu.Unlock()
-		p.logger.Debug("pool hit", "addr", addr)
-		return c, nil
+		if !c.IsClosed() {
+			p.mu.Unlock()
+			p.logger.Debug("pool hit", "addr", addr)
+			return c, nil
+		}
+		// Соединение мертво — удаляем.
+		delete(p.conns, addr)
+		p.logger.Debug("evicted dead connection from pool", "addr", addr)
 	}
 	onNew := p.onNew
 	p.mu.Unlock()
