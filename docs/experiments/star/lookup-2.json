@@ -1,19 +1,20 @@
 {
-  "lookup_id": "ad004523",
-  "initiator_id": "89767e5c",
-  "target_hex": "fa0a087c5cbaf397eb39219b2c251d7bf2eb9deed09a18f297a32bf1e05703ee",
+  "lookup_id": "eb0ab928",
+  "initiator_id": "40e7af0e",
+  "target_hex": "b97424b453723e657e5a89e886807359f3bfb72dfbbe817854118e801a39bd41",
   "success": true,
-  "rpcs": 6,
-  "iterations": 2,
+  "rpcs": 9,
+  "iterations": 3,
   "timeouts_hex": null,
-  "duration_ms": 3,
+  "duration_ms": 6,
   "closest_hex": [
-    "fa0a087c5cbaf397eb39219b2c251d7bf2eb9deed09a18f297a32bf1e05703ee",
-    "fa4eed1b2f82d1e6297f23a051200facb775fa98e9dd419772b8077cc5ef527c",
-    "e8621d58c4ed2ae4cd501d9bbfdd94cc8cdb4b59db9134145e7de1d1ae6208fb",
-    "ed0f604abf4276bf9494b53c01b80e91f06a6760aa683113adbb6c974c05b722"
+    "b97424b453723e657e5a89e886807359f3bfb72dfbbe817854118e801a39bd41",
+    "ba85536fcedc1df99693d1a184a2ee7c0664941b7a1dda83cb66902aac4b552f",
+    "8e526008e89498036b16c1c2249af41a8005d34f15ad341075eb752d7894a2ab",
+    "82d860052378723d43162328ad3aee91cd8121379e75776f3559611217ce7947"
   ],
-  "table_size_before": 6,
-  "table_size_after": 8,
-  "timestamp": "2026-10-10T07:02:56Z"
+  "table_size_before": 3,
+  "table_size_after": 7,
+  "timestamp": "2026-10-26T06:19:47Z",
+  "target_in_table_before": false
 }

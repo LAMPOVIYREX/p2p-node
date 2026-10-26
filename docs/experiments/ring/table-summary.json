@@ -1,132 +1,132 @@
 {
   "count": 21,
-  "total_size": 209,
-  "avg_size": 9.952380952380953,
+  "total_size": 277,
+  "avg_size": 13.19047619047619,
   "nodes": [
     {
-      "node_short": "dbca15c6",
-      "self_id": "dbca15c63f536c0a1ed20d06f7e00efba7a986fe3b3457d72db91882c4d609fe",
-      "table_size": 12,
+      "node_short": "fe129367",
+      "self_id": "fe1293671d20fdf10aef9ef2133c3f9b7028495b159bf4f0b80becf50690420a",
+      "table_size": 18,
       "path": "state/ring/node-01/table.json"
     },
     {
-      "node_short": "749cc83c",
-      "self_id": "749cc83cd792984b10f58e0af357a4bb0c6236aa473b8489464f36fdaae49447",
-      "table_size": 10,
+      "node_short": "11c12679",
+      "self_id": "11c1267983c26315fdd47ad1a453b72316550182d102886d3aea1d1e4f67ec11",
+      "table_size": 17,
       "path": "state/ring/node-02/table.json"
     },
     {
-      "node_short": "80b2844e",
-      "self_id": "80b2844e12bec1071e4b2788abdeb9a7205d18366ef5aa863496378e627c737d",
-      "table_size": 8,
+      "node_short": "1010f777",
+      "self_id": "1010f777f696e4ff67a19180f7429cc55cab66225576069aa92911d404e45e7e",
+      "table_size": 16,
       "path": "state/ring/node-03/table.json"
     },
     {
-      "node_short": "83e86240",
-      "self_id": "83e8624031c87ef5a4500c8070df833e04e3df5e4b068618cfbf24c103716648",
-      "table_size": 10,
+      "node_short": "1729daa2",
+      "self_id": "1729daa21eeb4b1c83a37c0850da6a0a8ff603a04c0af594d0e1c7d0e5d9d7f3",
+      "table_size": 19,
       "path": "state/ring/node-04/table.json"
     },
     {
-      "node_short": "bfe2cc4e",
-      "self_id": "bfe2cc4e5575126fd9a425e1cc4b092e71bdaa81530d8df968ebedb1dfe109bf",
-      "table_size": 13,
+      "node_short": "1f78882f",
+      "self_id": "1f78882f563e45cc9331c755c6e0bf19aa14917037210844eb22f19ac4729e7e",
+      "table_size": 15,
       "path": "state/ring/node-05/table.json"
     },
     {
-      "node_short": "66a845d4",
-      "self_id": "66a845d490eb73ec11c3d0d757acfd02107fc99a1ae5819c62d6efa846d99068",
-      "table_size": 11,
+      "node_short": "0138fe37",
+      "self_id": "0138fe3724e8ed92b9b1350f856a8288577fb53d182411829dd793edc62d4f92",
+      "table_size": 12,
       "path": "state/ring/node-06/table.json"
     },
     {
-      "node_short": "6bf17a8a",
-      "self_id": "6bf17a8a5e4885537a39a8fdf2f204161c60df2e44c4bc2c4f76c33fb05257cc",
-      "table_size": 13,
+      "node_short": "37a5d04e",
+      "self_id": "37a5d04e58ac53ba5a822d551877acaaaee8f92976ac84e74f211f5f51fe03ac",
+      "table_size": 12,
       "path": "state/ring/node-07/table.json"
     },
     {
-      "node_short": "b4cd6b86",
-      "self_id": "b4cd6b8664b626cea864387aa5f34b6abf7bf2b6900fcbf399f81129b3c2ee96",
-      "table_size": 13,
+      "node_short": "e7ffcd4a",
+      "self_id": "e7ffcd4aae0284a89617dea3f497bc72c1f076597f31af0d7029f51b9db78cee",
+      "table_size": 12,
       "path": "state/ring/node-08/table.json"
     },
     {
-      "node_short": "e9069a13",
-      "self_id": "e9069a139282232d2bceea4bec2d1326a9e07dffb4341412f6736bf7146fd30c",
-      "table_size": 8,
+      "node_short": "c9b92280",
+      "self_id": "c9b92280cb8ce04063229f7d290d70e891c42390e6724ba71f3e5b0032e0ccbe",
+      "table_size": 12,
       "path": "state/ring/node-09/table.json"
     },
     {
-      "node_short": "7b3cce45",
-      "self_id": "7b3cce453dac959bd2eac6423b9f88eddf4ef4d151bfc4ccb01ac8d8fc6bd0af",
-      "table_size": 10,
+      "node_short": "e057fdbb",
+      "self_id": "e057fdbbb17a67d03349cc04d8515e56bd8004516eb032f7d8dc671bdfa4f4a7",
+      "table_size": 14,
       "path": "state/ring/node-10/table.json"
     },
     {
-      "node_short": "68c65924",
-      "self_id": "68c659247b390994a2a95715300b0bb0ee714eddb20c7347d803a71182a6fe52",
-      "table_size": 11,
+      "node_short": "39f0e36c",
+      "self_id": "39f0e36cd2f1e1c31a9b00390bda045149b25e7def67b82cd2ecab9e45f72e58",
+      "table_size": 13,
       "path": "state/ring/node-11/table.json"
     },
     {
-      "node_short": "fdbb2992",
-      "self_id": "fdbb2992a81ad0b6a99ff07e11cb57aefa5a62380217a7aa22d381ce6206c1bd",
-      "table_size": 12,
+      "node_short": "7db885ee",
+      "self_id": "7db885eee1f276709585016c161bf2e2b4e3144efe188ce5f247cd4a99888cfd",
+      "table_size": 7,
       "path": "state/ring/node-12/table.json"
     },
     {
-      "node_short": "6098b8ea",
-      "self_id": "6098b8ea2c3a83226feaad6b4ed320cf68da6ef19318b968fa75e6470b162dfe",
-      "table_size": 11,
+      "node_short": "8d99d46d",
+      "self_id": "8d99d46d7b22998a89bee461ce2ece7abc1a0b0306e5ae709044e92374a61709",
+      "table_size": 16,
       "path": "state/ring/node-13/table.json"
     },
     {
-      "node_short": "65717fb2",
-      "self_id": "65717fb2efeca69ba4382392cefb7ccba025c165aaa21ffb8160f43002170e42",
-      "table_size": 9,
+      "node_short": "f1831f87",
+      "self_id": "f1831f8764a4d683a851fc0dd3961bb1710406020a5010ba8f4ad009da42da4b",
+      "table_size": 12,
       "path": "state/ring/node-14/table.json"
     },
     {
-      "node_short": "cb755815",
-      "self_id": "cb7558158883464e0e18db0c0d85f6ee629cb560d334b78a1170290c932b9395",
-      "table_size": 12,
+      "node_short": "d1dba9c2",
+      "self_id": "d1dba9c2bf2a2b270f66c9ae1a20a30e236b11f93ef0a2a1178a01d0ee235765",
+      "table_size": 8,
       "path": "state/ring/node-15/table.json"
     },
     {
-      "node_short": "abd4591b",
-      "self_id": "abd4591bdf6d45b40b9d5b22ae48fbfd5b103655d0c39180fd5959009dd7c520",
-      "table_size": 7,
+      "node_short": "98c6e401",
+      "self_id": "98c6e4012367ddf40bc7320460780f77f819ada8d352d3d4901a58ed71e5b9c7",
+      "table_size": 14,
       "path": "state/ring/node-16/table.json"
     },
     {
-      "node_short": "a37b2aaf",
-      "self_id": "a37b2aafde7a01fe519ca944cb9606029bf01e5e8a30cd1bb9d695cea622f1bd",
-      "table_size": 5,
+      "node_short": "9035c73f",
+      "self_id": "9035c73ff69f13bbdc83e1affd01b1c7f0e159d829ae4d7e19401075c478d681",
+      "table_size": 12,
       "path": "state/ring/node-17/table.json"
     },
     {
-      "node_short": "2279cb45",
-      "self_id": "2279cb45f4fa1174e429c627d60521eb128c228af0e5b8a0c501cfa3b212da58",
-      "table_size": 9,
+      "node_short": "e43eef7a",
+      "self_id": "e43eef7a9b3e87ea91755a9900ff566a7510808c252fc92ff41ad3cfb45acc06",
+      "table_size": 12,
       "path": "state/ring/node-18/table.json"
     },
     {
-      "node_short": "61eba778",
-      "self_id": "61eba7786c5c3af0c89497ebd2623473a0e118e0872299da71eaf20ce3b6fdd9",
-      "table_size": 9,
+      "node_short": "bdbbd310",
+      "self_id": "bdbbd310b1f577cc05440b09ed91ade6d5d785642b0a60f250163e7e7249087a",
+      "table_size": 12,
       "path": "state/ring/node-19/table.json"
     },
     {
-      "node_short": "ed202e7f",
-      "self_id": "ed202e7fa94a44231b05487e2110831b440ec1a4971b09f023e19759a549fade",
-      "table_size": 10,
+      "node_short": "01c360a2",
+      "self_id": "01c360a29a50ebbd9eb53a123ba5c8cb685a53807d8c652e85119ad084158cb6",
+      "table_size": 14,
       "path": "state/ring/node-20/table.json"
     },
     {
-      "node_short": "01a54fbc",
-      "self_id": "01a54fbcd7d9495009767e4892c3287f6e41b89b45642956bb0497769e97bff6",
-      "table_size": 6,
+      "node_short": "1694903e",
+      "self_id": "1694903e6476c39210d1f72ab16d23831acab4171f698ada5a612e00eeb50229",
+      "table_size": 10,
       "path": "state/ring/node-21/table.json"
     }
   ]

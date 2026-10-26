@@ -1,132 +1,132 @@
 {
   "count": 21,
-  "total_size": 177,
-  "avg_size": 8.428571428571429,
+  "total_size": 179,
+  "avg_size": 8.523809523809524,
   "nodes": [
     {
-      "node_short": "746242a4",
-      "self_id": "746242a489f50ff0f8e5ca5ad8a85c4e9cc520c632156a4b9545e50390bc010d",
+      "node_short": "6a68819f",
+      "self_id": "6a68819f5558be19c46683533c9ab01c82272c8b68dbb6b04c8491d5c174af4d",
       "table_size": 12,
       "path": "state/star/node-01/table.json"
     },
     {
-      "node_short": "5b423e54",
-      "self_id": "5b423e5490f66f9aca5fc0faf6bc2ba83cd51add51b248a9d309115c72faac27",
-      "table_size": 9,
+      "node_short": "da910706",
+      "self_id": "da9107069093080d426797b8bdd1f1cf9058dc49b995584159a6997a2e918861",
+      "table_size": 15,
       "path": "state/star/node-02/table.json"
     },
     {
-      "node_short": "3a69e794",
-      "self_id": "3a69e794f334a086549872191e6e1e9ec7721357c05b959c62fe638815775e5a",
-      "table_size": 8,
+      "node_short": "03471581",
+      "self_id": "034715814c2d66909ca1fe0ff7e597799907e6fd3e0f9bdba5b471973d2ddc64",
+      "table_size": 9,
       "path": "state/star/node-03/table.json"
     },
     {
-      "node_short": "c73e4642",
-      "self_id": "c73e4642c9658b9972bf60fdc7b55a25d1c8c1cba60bbe04849a5c75009ec59c",
-      "table_size": 13,
+      "node_short": "188c2518",
+      "self_id": "188c2518f041881ddbc9ba6095a2e61debf8715a6d713c986c453a08f78e808b",
+      "table_size": 10,
       "path": "state/star/node-04/table.json"
     },
     {
-      "node_short": "ed0f604a",
-      "self_id": "ed0f604abf4276bf9494b53c01b80e91f06a6760aa683113adbb6c974c05b722",
+      "node_short": "d7b0e166",
+      "self_id": "d7b0e166d434412f28b4ed997d391a0a9d4d9fdcbe605fcdf2c1f831574e29ec",
       "table_size": 14,
       "path": "state/star/node-05/table.json"
     },
     {
-      "node_short": "fa0a087c",
-      "self_id": "fa0a087c5cbaf397eb39219b2c251d7bf2eb9deed09a18f297a32bf1e05703ee",
-      "table_size": 14,
+      "node_short": "b97424b4",
+      "self_id": "b97424b453723e657e5a89e886807359f3bfb72dfbbe817854118e801a39bd41",
+      "table_size": 10,
       "path": "state/star/node-06/table.json"
     },
     {
-      "node_short": "c91a9f75",
-      "self_id": "c91a9f755df8d081dd9827ddddd943883768d6fd6f4b7af9b09452271244d82d",
-      "table_size": 12,
+      "node_short": "6a299e33",
+      "self_id": "6a299e331a8e2bbb79b4e68d08882cdefcb8f1e4ba1e167ce5b7c8c6048ddb0f",
+      "table_size": 8,
       "path": "state/star/node-07/table.json"
     },
     {
-      "node_short": "7a4beeac",
-      "self_id": "7a4beeac3328d40cbd66c981b96bab4925a2f63de23e6cdd0f1b5fcd522f1dce",
-      "table_size": 8,
+      "node_short": "7cba7993",
+      "self_id": "7cba79935593c9fdeb9ec3dc9082175d28a7e96b9bc031a102b632e540073d98",
+      "table_size": 7,
       "path": "state/star/node-08/table.json"
     },
     {
-      "node_short": "67d1b007",
-      "self_id": "67d1b00713a21d71d31d9f7eefae0b9904e083124cee9b3c796367031b6f6cda",
-      "table_size": 8,
+      "node_short": "d36c8ae2",
+      "self_id": "d36c8ae22e02f021460a36b9a926327a2917fd89dbdc7d3d44b959df899b477e",
+      "table_size": 12,
       "path": "state/star/node-09/table.json"
     },
     {
-      "node_short": "72898671",
-      "self_id": "7289867181251d5534097ea3fc9e595471c0b024e193853c4767caac9efb187f",
+      "node_short": "7aba360f",
+      "self_id": "7aba360fdd9da1480f1c7188b2f1b4031879c0c4e96bc6c5dbf55b8cdaee8a99",
       "table_size": 6,
       "path": "state/star/node-10/table.json"
     },
     {
-      "node_short": "85c32a95",
-      "self_id": "85c32a9542c1958e85d7bb0c10e3253e298103ddde2cb2570daceef886e63bb8",
-      "table_size": 8,
+      "node_short": "72f58cd8",
+      "self_id": "72f58cd84165138e98db0e7d2c7f20e764b5ec014523aa48f6c745970caa2aae",
+      "table_size": 4,
       "path": "state/star/node-11/table.json"
     },
     {
-      "node_short": "70319413",
-      "self_id": "70319413031a92cdfc7b2582020eeaecc11730dcabde085e2fc06266929c02b4",
-      "table_size": 4,
+      "node_short": "3f3bfd6e",
+      "self_id": "3f3bfd6e5e50e7ddb14d5d4ecaab5f46d126abebc6d224b36dd3d73942424733",
+      "table_size": 7,
       "path": "state/star/node-12/table.json"
     },
     {
-      "node_short": "2eb1dc53",
-      "self_id": "2eb1dc531dd37cf4b7e7b236603feac70f11540d81d4850433af5924d4a745e7",
-      "table_size": 5,
+      "node_short": "00cdfbe7",
+      "self_id": "00cdfbe764ef0adb88c9febe4c17248b056292092147969eb4ae09278e1ea0b9",
+      "table_size": 4,
       "path": "state/star/node-13/table.json"
     },
     {
-      "node_short": "e8621d58",
-      "self_id": "e8621d58c4ed2ae4cd501d9bbfdd94cc8cdb4b59db9134145e7de1d1ae6208fb",
-      "table_size": 9,
+      "node_short": "8e526008",
+      "self_id": "8e526008e89498036b16c1c2249af41a8005d34f15ad341075eb752d7894a2ab",
+      "table_size": 8,
       "path": "state/star/node-14/table.json"
     },
     {
-      "node_short": "a2bf1080",
-      "self_id": "a2bf108056f6188ef700812dcc789da24b581cd5d804fbd5d3a949bdb99f8a31",
-      "table_size": 8,
+      "node_short": "da60bdb0",
+      "self_id": "da60bdb0bea91add858d041101ac52af1514efd630ba747ae527aae544ee5d8c",
+      "table_size": 10,
       "path": "state/star/node-15/table.json"
     },
     {
-      "node_short": "fa4eed1b",
-      "self_id": "fa4eed1b2f82d1e6297f23a051200facb775fa98e9dd419772b8077cc5ef527c",
-      "table_size": 6,
+      "node_short": "cc1fc7e8",
+      "self_id": "cc1fc7e8014ae964cc78ee8c828137788ca805a175bd309f8cc74cec756f7daf",
+      "table_size": 8,
       "path": "state/star/node-16/table.json"
     },
     {
-      "node_short": "ccaa5fa0",
-      "self_id": "ccaa5fa0ea7a48333bd5b5e47663318dc02509d3926a8611c559f9d281e88831",
-      "table_size": 7,
+      "node_short": "ca9aebb9",
+      "self_id": "ca9aebb952cea67d65b198c6828922330d088679a0fc62049c0dfb72743aea38",
+      "table_size": 8,
       "path": "state/star/node-17/table.json"
     },
     {
-      "node_short": "a51f960d",
-      "self_id": "a51f960d25bdf62e915e07ac5e7a0418efd689177e8de56b4dac7b8ac974bdde",
+      "node_short": "ba85536f",
+      "self_id": "ba85536fcedc1df99693d1a184a2ee7c0664941b7a1dda83cb66902aac4b552f",
       "table_size": 8,
       "path": "state/star/node-18/table.json"
     },
     {
-      "node_short": "ad8324a1",
-      "self_id": "ad8324a1c153b99d8eaa8fd4fe9f9d63bcfb47d450cbf8eab34759f829e855e8",
-      "table_size": 7,
+      "node_short": "e330ad15",
+      "self_id": "e330ad157a0f47125b0a83a5037c442e841664b95197d9085d84f91186ddbfe9",
+      "table_size": 6,
       "path": "state/star/node-19/table.json"
     },
     {
-      "node_short": "c73e823a",
-      "self_id": "c73e823a0f12a183646e3bca076106345a20aa987955d6dd4356ef68ea83478e",
+      "node_short": "db48cb39",
+      "self_id": "db48cb39bfc2a0376e5cc6e1f3fd544cf6fc8611f6b592d0c6e20d292c2b8a9e",
       "table_size": 6,
       "path": "state/star/node-20/table.json"
     },
     {
-      "node_short": "229875b1",
-      "self_id": "229875b1a9fb963facacf5b3bff99cdef1ef5310f2d93da0723ffb291628c3e9",
-      "table_size": 5,
+      "node_short": "82d86005",
+      "self_id": "82d860052378723d43162328ad3aee91cd8121379e75776f3559611217ce7947",
+      "table_size": 7,
       "path": "state/star/node-21/table.json"
     }
   ]

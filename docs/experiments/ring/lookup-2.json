@@ -1,19 +1,15 @@
 {
-  "lookup_id": "ff73f22f",
-  "initiator_id": "b938dbb9",
-  "target_hex": "66a845d490eb73ec11c3d0d757acfd02107fc99a1ae5819c62d6efa846d99068",
-  "success": true,
-  "rpcs": 9,
-  "iterations": 3,
+  "lookup_id": "ec89b00b",
+  "initiator_id": "f1b6a232",
+  "target_hex": "0138fe3724e8ed92b9b1350f856a8288577fb53d182411829dd793edc62d4f92",
+  "success": false,
+  "rpcs": 0,
+  "iterations": 0,
   "timeouts_hex": null,
-  "duration_ms": 5,
-  "closest_hex": [
-    "66a845d490eb73ec11c3d0d757acfd02107fc99a1ae5819c62d6efa846d99068",
-    "65717fb2efeca69ba4382392cefb7ccba025c165aaa21ffb8160f43002170e42",
-    "6098b8ea2c3a83226feaad6b4ed320cf68da6ef19318b968fa75e6470b162dfe",
-    "61eba7786c5c3af0c89497ebd2623473a0e118e0872299da71eaf20ce3b6fdd9"
-  ],
-  "table_size_before": 7,
-  "table_size_after": 11,
-  "timestamp": "2026-10-10T07:06:10Z"
+  "duration_ms": 0,
+  "closest_hex": null,
+  "table_size_before": 0,
+  "table_size_after": 0,
+  "timestamp": "2026-10-26T06:17:52Z",
+  "target_in_table_before": false
 }
