@@ -92,9 +92,9 @@ TUNNEL_*, APP_*).
 
 | Payload                     | JSON | MsgPack | CBOR |
 |-----------------------------|-----:|--------:|-----:|
-| PING                        |  302 |     243 |  261 |
-| FIND_NODE_RESPONSE (4)      | 1387 |    1035 | 1081 |
-| FIND_NODE_RESPONSE (10)     | 3337 |    2463 | 2561 |
+| PING                        |  249 |     216 |  221 |
+| FIND_NODE_RESPONSE (4)      | 1160 |    1035 | 1057 |
+| FIND_NODE_RESPONSE (10)     | 2420 |    2157 | 2203 |
 
 JSON занимает на 20–35% больше места, чем бинарные форматы. При этом
 максимальный payload (FIND_NODE_RESPONSE с 4 контактами) занимает ~1.4 КБ,
