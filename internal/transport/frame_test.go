@@ -87,25 +87,30 @@ func TestT1_4_GluedFrames(t *testing.T) {
 	}
 }
 
-// T1.5: 100 кадров, случайное разбиение потока на куски 1..17 байт.
+// T1.5: 100 кадров, поток режется на куски 1..17 байт.
+// Используется фиксированный seed — тест воспроизводим.
 func TestT1_5_ArbitrarySplit(t *testing.T) {
 	const N = 100
+	r := rand.New(rand.NewSource(42))
+
 	frames := make([]*Frame, N)
 	var stream []byte
 	for i := 0; i < N; i++ {
-		plen := rand.Intn(200)
+		plen := r.Intn(200)
 		pl := make([]byte, plen)
-		rand.Read(pl)
+		r.Read(pl)
 		frames[i] = mkFrame(uint8(i%250+1), pl)
 		stream = append(stream, Encode(frames[i])...)
 	}
 
 	pr, pw := io.Pipe()
+
+	// Writer: режет поток на куски 1..17 байт.
 	go func() {
 		defer pw.Close()
 		rest := stream
 		for len(rest) > 0 {
-			n := rand.Intn(17) + 1
+			n := r.Intn(17) + 1
 			if n > len(rest) {
 				n = len(rest)
 			}
@@ -116,6 +121,10 @@ func TestT1_5_ArbitrarySplit(t *testing.T) {
 		}
 	}()
 
+	// Гарантируем, что writer-горутина разблокируется при любом
+	// исходе — в том числе если тест упадёт раньше и вызовет Fatal.
+	defer pr.Close()
+
 	for i := 0; i < N; i++ {
 		got, err := Decode(pr, MaxFramePayload, ProtocolVersion)
 		if err != nil {
@@ -124,6 +133,30 @@ func TestT1_5_ArbitrarySplit(t *testing.T) {
 		if got.Type != frames[i].Type ||
 			!bytes.Equal(got.Payload, frames[i].Payload) {
 			t.Fatalf("frame %d mismatch", i)
+		}
+	}
+}
+
+func TestT1_5b_AllSplitPoints(t *testing.T) {
+	f := mkFrame(0x01, []byte("payload-for-split-test"))
+	stream := Encode(f)
+
+	for split := 1; split < len(stream); split++ {
+		pr, pw := io.Pipe()
+		go func(s int) {
+			defer pw.Close()
+			_, _ = pw.Write(stream[:s])
+			_, _ = pw.Write(stream[s:])
+		}(split)
+
+		got, err := Decode(pr, MaxFramePayload, ProtocolVersion)
+		_ = pr.Close()
+
+		if err != nil {
+			t.Fatalf("split=%d: %v", split, err)
+		}
+		if got.Type != f.Type || !bytes.Equal(got.Payload, f.Payload) {
+			t.Fatalf("split=%d: frame mismatch", split)
 		}
 	}
 }
