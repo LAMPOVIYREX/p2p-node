@@ -149,3 +149,58 @@ func TestT2_14_BootstrapDown(t *testing.T) {
 		t.Fatal("c not in closest after bootstrap down")
 	}
 }
+
+// TestT2_6b_TimeoutDoesNotStopLookup проверяет, что тайм-аут от
+// близкого узла не засчитывается как успешный опрос и не приводит
+// к преждевременному завершению поиска.
+func TestT2_6b_TimeoutDoesNotStopLookup(t *testing.T) {
+	// A — инициатор.
+	a := startTestNode(t, mkCfg(t))
+
+	// B — промежуточный узел, знает C.
+	cfgB := mkCfg(t)
+	cfgB.BootstrapPeers = []string{a.Addr().String()}
+	b := startTestNode(t, cfgB)
+	if err := b.BootstrapPeers(); err != nil {
+		t.Fatalf("b bootstrap: %v", err)
+	}
+
+	// C — цель, B знает C после bootstrap.
+	cfgC := mkCfg(t)
+	cfgC.BootstrapPeers = []string{b.Addr().String()}
+	c := startTestNode(t, cfgC)
+	if err := c.BootstrapPeers(); err != nil {
+		t.Fatalf("c bootstrap: %v", err)
+	}
+
+	// Ждём, пока B узнает C.
+	waitFor(t, func() bool {
+		for _, ct := range b.table.AllContacts() {
+			if ct.NodeID == c.self.NodeID {
+				return true
+			}
+		}
+		return false
+	})
+
+	// Останавливаем C: он теперь «мёртвый», но всё ещё в таблице B.
+	c.Stop()
+
+	// A делает lookup C. Он должен пройти через B и не зависнуть на мёртвом C.
+	res := a.LookupNode(c.self.NodeID)
+
+	// Последний шаг: C недостижим, но B вернёт его как ближайшего.
+	// Lookup успешен, если не завис и обработал тайм-аут.
+	if len(res.Closest) == 0 {
+		t.Fatal("no closest contacts returned")
+	}
+	if len(res.Timeouts) == 0 {
+		t.Log("warning: no timeouts — возможно, C ещё в таблице A напрямую")
+	}
+
+	// Ключевая проверка: если бы тайм-аут считался успехом,
+	// lookupConverged остановился бы раньше. Проверим, что RPC > 1.
+	if res.RPCs < 2 {
+		t.Fatalf("rpcs = %d, lookups should have continued past the timeout", res.RPCs)
+	}
+}

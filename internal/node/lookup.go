@@ -33,7 +33,8 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 	res := &LookupResult{LookupID: lid, Target: target}
 
 	candidates := n.table.FindClosest(target, n.cfg.KBucketSize)
-	queried := map[routing.NodeID]bool{}
+	queried := map[routing.NodeID]bool{}    // кому отправили запрос
+	successful := map[routing.NodeID]bool{} // кто успешно ответил
 
 	for {
 		sort.Slice(candidates, func(i, j int) bool {
@@ -62,6 +63,7 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 			"iter", res.Iterations,
 			"candidates", len(candidates),
 			"batch", len(batch),
+			"successful_so_far", len(successful),
 		)
 
 		type reply struct {
@@ -87,8 +89,11 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 					"peer", logging.ShortBytes(r.c.NodeID[:]),
 					"err", r.err.Error(),
 				)
-				continue
+				continue // не добавляем в successful
 			}
+
+			successful[r.c.NodeID] = true
+
 			newCount := 0
 			for _, nc := range r.contacts {
 				if !containsID(candidates, nc.NodeID) && nc.NodeID != n.self.NodeID {
@@ -104,7 +109,7 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 			n.table.AddOrUpdate(r.c)
 		}
 
-		if lookupConverged(candidates, queried, target, n.cfg.KBucketSize) {
+		if lookupConverged(candidates, queried, successful, target, n.cfg.KBucketSize) {
 			break
 		}
 	}
@@ -140,11 +145,54 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 		"success", res.Success,
 		"rpc", res.RPCs,
 		"iterations", res.Iterations,
+		"successful_nodes", len(successful),
 		"timeouts", len(res.Timeouts),
 		"duration_ms", res.Duration.Milliseconds(),
 		"closest", closestIDs,
 	)
 	return res
+}
+
+// lookupConverged определяет условие остановки: K ближайших УСПЕШНО опрошенных
+// узлов ближе, чем любой из оставшихся НЕопрошенных кандидатов.
+// Узлы, не ответившие по тайм-ауту, НЕ учитываются в списке K ближайших.
+func lookupConverged(
+	candidates []*routing.Contact,
+	queried map[routing.NodeID]bool,
+	successful map[routing.NodeID]bool,
+	target routing.NodeID,
+	k int,
+) bool {
+	var successfulDists [][32]byte
+	for _, c := range candidates {
+		if successful[c.NodeID] {
+			successfulDists = append(successfulDists, routing.Xor(c.NodeID, target))
+		}
+	}
+
+	// Пока не получили успешный ответ от K узлов, завершение невозможно.
+	if len(successfulDists) < k {
+		return false
+	}
+
+	sort.Slice(successfulDists, func(i, j int) bool {
+		return routing.CompareDist(successfulDists[i], successfulDists[j]) < 0
+	})
+	kth := successfulDists[k-1]
+
+	for _, c := range candidates {
+		if successful[c.NodeID] {
+			continue // уже успешно опрошен
+		}
+		if queried[c.NodeID] {
+			continue // опрошен, но неуспешно (таймаут) — не блокируем поиск
+		}
+		// Неопрошенный кандидат ближе, чем K-й успешный — надо опросить.
+		if routing.CompareDist(routing.Xor(c.NodeID, target), kth) < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func (n *Node) findNodeRPC(c *routing.Contact, target routing.NodeID) ([]*routing.Contact, error) {
@@ -164,8 +212,6 @@ func (n *Node) findNodeRPC(c *routing.Contact, target routing.NodeID) ([]*routin
 		return nil, err
 	}
 
-	// Требование 20.2: проверяем, что target_node_id в ответе
-	// совпадает с целевым.
 	if p.TargetNodeID != hex.EncodeToString(target[:]) {
 		return nil, errors.New("target_node_id mismatch in response")
 	}
@@ -193,29 +239,4 @@ func containsID(cs []*routing.Contact, id routing.NodeID) bool {
 		}
 	}
 	return false
-}
-
-func lookupConverged(candidates []*routing.Contact, queried map[routing.NodeID]bool, target routing.NodeID, k int) bool {
-	var queriedDists [][32]byte
-	for _, c := range candidates {
-		if queried[c.NodeID] {
-			queriedDists = append(queriedDists, routing.Xor(c.NodeID, target))
-		}
-	}
-	if len(queriedDists) < k {
-		return false
-	}
-	sort.Slice(queriedDists, func(i, j int) bool {
-		return routing.CompareDist(queriedDists[i], queriedDists[j]) < 0
-	})
-	kth := queriedDists[k-1]
-	for _, c := range candidates {
-		if queried[c.NodeID] {
-			continue
-		}
-		if routing.CompareDist(routing.Xor(c.NodeID, target), kth) < 0 {
-			return false
-		}
-	}
-	return true
 }
