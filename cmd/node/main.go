@@ -81,6 +81,7 @@ type lookupReport struct {
 	TableBefore int      `json:"table_size_before"`
 	TableAfter  int      `json:"table_size_after"`
 	Timestamp   string   `json:"timestamp"`
+	InTableBefore bool `json:"target_in_table_before"`
 }
 
 func runLookupMode(ctx context.Context, n *node.Node, targetHex string, waitMs int) error {
@@ -108,6 +109,14 @@ func runLookupMode(ctx context.Context, n *node.Node, targetHex string, waitMs i
 		}
 	}
 
+	inTableBefore := false
+	for _, c := range n.TableSnapshot() {
+		if c.NodeID == target {
+			inTableBefore = true
+			break
+		}
+	}
+
 	before := len(n.TableSnapshot())
 
 	res := n.LookupNode(target)
@@ -123,6 +132,7 @@ func runLookupMode(ctx context.Context, n *node.Node, targetHex string, waitMs i
 		TableBefore: before,
 		TableAfter:  len(n.TableSnapshot()),
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
+		InTableBefore: inTableBefore,
 	}
 	for _, id := range res.Timeouts {
 		report.Timeouts = append(report.Timeouts, hex.EncodeToString(id[:]))
