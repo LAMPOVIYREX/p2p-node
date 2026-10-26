@@ -69,19 +69,20 @@ func main() {
 // ---------- lookup mode ----------
 
 type lookupReport struct {
-	LookupID    string   `json:"lookup_id"`
-	InitiatorID string   `json:"initiator_id"`
-	TargetHex   string   `json:"target_hex"`
-	Success     bool     `json:"success"`
-	RPCs        int      `json:"rpcs"`
-	Iterations  int      `json:"iterations"`
-	Timeouts    []string `json:"timeouts_hex"`
-	DurationMs  int64    `json:"duration_ms"`
-	ClosestHex  []string `json:"closest_hex"`
-	TableBefore int      `json:"table_size_before"`
-	TableAfter  int      `json:"table_size_after"`
-	Timestamp   string   `json:"timestamp"`
-	InTableBefore bool `json:"target_in_table_before"`
+	LookupID      string   `json:"lookup_id"`
+	InitiatorID   string   `json:"initiator_id"`
+	TargetHex     string   `json:"target_hex"`
+	Success       bool     `json:"success"`         // цель найдена в closest
+	TargetFound   bool     `json:"target_found"`    // явный дубль для читаемости (== Success)
+	RPCs          int      `json:"rpcs"`
+	Iterations    int      `json:"iterations"`
+	Timeouts      []string `json:"timeouts_hex"`
+	DurationMs    int64    `json:"duration_ms"`
+	ClosestHex    []string `json:"closest_hex"`
+	TableBefore   int      `json:"table_size_before"`
+	TableAfter    int      `json:"table_size_after"`
+	InTableBefore bool     `json:"target_in_table_before"`
+	Timestamp     string   `json:"timestamp"`
 }
 
 func runLookupMode(ctx context.Context, n *node.Node, targetHex string, waitMs int) error {
@@ -122,17 +123,18 @@ func runLookupMode(ctx context.Context, n *node.Node, targetHex string, waitMs i
 	res := n.LookupNode(target)
 
 	report := lookupReport{
-		LookupID:    res.LookupID,
-		InitiatorID: n.ShortID(),
-		TargetHex:   targetHex,
-		Success:     res.Success,
-		RPCs:        res.RPCs,
-		Iterations:  res.Iterations,
-		DurationMs:  res.Duration.Milliseconds(),
-		TableBefore: before,
-		TableAfter:  len(n.TableSnapshot()),
-		Timestamp:   time.Now().UTC().Format(time.RFC3339),
+		LookupID:      res.LookupID,
+		InitiatorID:   n.ShortID(),
+		TargetHex:     targetHex,
+		Success:       res.Success,
+		TargetFound:   res.Success, // теперь строго цель в closest
+		RPCs:          res.RPCs,
+		Iterations:    res.Iterations,
+		DurationMs:    res.Duration.Milliseconds(),
+		TableBefore:   before,
+		TableAfter:    len(n.TableSnapshot()),
 		InTableBefore: inTableBefore,
+		Timestamp:     time.Now().UTC().Format(time.RFC3339),
 	}
 	for _, id := range res.Timeouts {
 		report.Timeouts = append(report.Timeouts, hex.EncodeToString(id[:]))

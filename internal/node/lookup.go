@@ -126,14 +126,12 @@ func (n *Node) LookupNode(target routing.NodeID) *LookupResult {
 	res.Closest = candidates
 	res.Duration = time.Since(start)
 
+	res.Success = false
 	for _, c := range candidates {
 		if c.NodeID == target {
 			res.Success = true
 			break
 		}
-	}
-	if !res.Success && len(candidates) > 0 {
-		res.Success = true
 	}
 
 	closestIDs := make([]string, len(candidates))

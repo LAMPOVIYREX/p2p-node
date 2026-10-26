@@ -168,8 +168,16 @@ sleep 2
 echo "==> контрольный lookup без seed (bootstrap через node-03)"
 tgt="${targets[0]}"
 if run_lookup_with_retry "$tgt" 9103 "$OUT/lookup-after-seed-down.json" "$MAX_RETRIES"; then
-    jq -c '{success, rpcs, iterations, in_table_before: .target_in_table_before}' \
+    target_found=$(jq -r '.target_found' "$OUT/lookup-after-seed-down.json")
+    jq -c '{success, target_found, rpcs, iterations, in_table_before: .target_in_table_before}' \
         "$OUT/lookup-after-seed-down.json"
+    
+    if [ "$target_found" = "true" ]; then
+        echo "   ЦЕЛЬ НАЙДЕНА: ${tgt:0:8}… присутствует в closest_hex"
+    else
+        echo "   ОШИБКА: цель ${tgt:0:8}… ОТСУТСТВУЕТ в closest_hex" >&2
+        exit 1
+    fi
 else
     echo "ПРЕДУПРЕЖДЕНИЕ: контрольный lookup без seed остался тривиальным" >&2
 fi
