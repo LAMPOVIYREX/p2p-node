@@ -160,6 +160,19 @@ func (n *Node) SelfContactWire() protocol.ContactWire {
 	return contactToWire(n.SelfContact())
 }
 
+// Stop закрывает TCP-сервер и все исходящие соединения.
+// Используется для штатной остановки узла и в интеграционных тестах.
+// После Stop узел не принимает входящие соединения и не инициирует
+// новые исходящие. NodeID и state_dir сохраняются — при следующем
+// создании узла из того же каталога идентичность восстановится.
+func (n *Node) Stop() {
+	if n.server != nil {
+		_ = n.server.Close()
+	}
+	n.pool.CloseAll()
+	n.logger.Debug("node stopped")
+}
+
 func (n *Node) handleIncomingConn(c *transport.Conn) {
 	defer c.Close()
 	defer n.logger.Debug("incoming connection closed", "peer", c.Peer())

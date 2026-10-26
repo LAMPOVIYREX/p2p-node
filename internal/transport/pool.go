@@ -92,3 +92,14 @@ func (p *Pool) Evict(addr string, c *Conn) {
 		p.logger.Debug("connection evicted", "addr", addr)
 	}
 }
+
+// CloseAll закрывает все соединения в пуле. Используется при штатной
+// остановке узла и в тестах, где нужен чистый перезапуск.
+func (p *Pool) CloseAll() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for addr, c := range p.conns {
+		_ = c.Close()
+		delete(p.conns, addr)
+	}
+}
