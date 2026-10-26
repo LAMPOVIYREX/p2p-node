@@ -121,7 +121,9 @@ func TestT2_14_BootstrapDown(t *testing.T) {
 		_ = a.server.Close()
 	}
 	// Убираем мёртвое соединение из пула b, чтобы не висело.
-	b.pool.Evict(a.Addr().String())
+	if c, err := b.pool.Get(a.Addr().String()); err == nil {
+		b.pool.Evict(a.Addr().String(), c)
+	}
 
 	// Проверка: a недоступен.
 	if _, err := b.rpc.SendRequest(a.Addr().String(), protocol.MsgPing,

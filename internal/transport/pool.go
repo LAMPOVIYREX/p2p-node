@@ -51,9 +51,9 @@ func (p *Pool) Get(addr string) (*Conn, error) {
 			p.logger.Debug("pool hit", "addr", addr)
 			return c, nil
 		}
-		// Соединение мертво — удаляем.
+		// Соединение мертво — удаляем
+		_ = c.Close()
 		delete(p.conns, addr)
-		p.logger.Debug("evicted dead connection from pool", "addr", addr)
 	}
 	onNew := p.onNew
 	p.mu.Unlock()
@@ -68,6 +68,7 @@ func (p *Pool) Get(addr string) (*Conn, error) {
 
 	p.mu.Lock()
 	if existing, ok := p.conns[addr]; ok {
+		// Кто-то успел создать соединение раньше нас — используем его
 		p.mu.Unlock()
 		_ = c.Close()
 		return existing, nil
@@ -82,12 +83,12 @@ func (p *Pool) Get(addr string) (*Conn, error) {
 	return c, nil
 }
 
-func (p *Pool) Evict(addr string) {
+func (p *Pool) Evict(addr string, c *Conn) {
 	p.mu.Lock()
-	if c, ok := p.conns[addr]; ok {
+	defer p.mu.Unlock()
+	if existing, ok := p.conns[addr]; ok && existing == c {
 		_ = c.Close()
 		delete(p.conns, addr)
 		p.logger.Debug("connection evicted", "addr", addr)
 	}
-	p.mu.Unlock()
 }

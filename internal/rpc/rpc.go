@@ -72,14 +72,30 @@ func (c *Client) SendRequest(addr string, msgType uint8, payload any, timeout ti
 		"rid", logging.ShortBytes(rid[:]),
 	)
 
-	conn, err := c.pool.Get(addr)
-	if err != nil {
-		return nil, err
+	// Retry loop: до 2 попыток (первая + один повтор при ошибке записи).
+	var writeErr error
+	for attempt := 1; attempt <= 2; attempt++ {
+		conn, err := c.pool.Get(addr)
+		if err != nil {
+			return nil, err
+		}
+		writeErr = conn.WriteFrame(f, 3*time.Second)
+		if writeErr == nil {
+			break
+		}
+		// Ошибка записи — соединение мертво, эвиктим и пробуем ещё раз.
+		c.pool.Evict(addr, conn)
+		if attempt == 1 {
+			c.logger.Debug("write failed, retrying with fresh connection",
+				"addr", addr, "err", writeErr.Error())
+			continue
+		}
+		return nil, writeErr
 	}
-	if err := conn.WriteFrame(f, 3*time.Second); err != nil {
-		c.pool.Evict(addr)
-		return nil, err
+	if writeErr != nil {
+		return nil, writeErr
 	}
+
 	select {
 	case resp := <-ch:
 		c.logger.Debug("rpc response",

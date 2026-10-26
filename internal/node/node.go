@@ -180,21 +180,23 @@ func (n *Node) handleIncomingConn(c *transport.Conn) {
 
 func (n *Node) handleOutgoingConn(c *transport.Conn) {
 	// Соединение принадлежит пулу: при выходе из readLoop
-	// оно должно быть закрыто и удалено из пула, иначе следующий
-	// pool.Get вернёт мёртвый сокет.
+	// оно закрывается и удаляется из пула. Если пул уже создал
+	// новое соединение по этому адресу — Evict его не тронет,
+	// так как проверяется идентичность *Conn.
 	defer func() {
 		_ = c.Close()
-		n.pool.Evict(c.Peer())
+		n.pool.Evict(c.Peer(), c)
 		n.logger.Debug("outgoing connection closed", "peer", c.Peer())
 	}()
+
 	for {
 		f, err := c.ReadFrame(n.cfg.ReadTimeout())
 		if err != nil {
 			if isReadTimeout(err) {
-				// Тайм-аут чтения не означает, что соединение мертво.
-				// Продолжаем ждать следующего кадра.
 				continue
 			}
+			// net.ErrClosed — соединение закрыто снаружи (WriteFrame или Evict).
+			// Любая другая ошибка — разрыв TCP.
 			return
 		}
 		if n.rpc.Deliver(f) {
