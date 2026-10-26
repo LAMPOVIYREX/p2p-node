@@ -182,3 +182,7 @@ func (t *Table) Reset() {
 		t.buckets[i] = newBucket(t.k)
 	}
 }
+
+func BucketIndex(self, other NodeID) int {
+	return bucketIndex(self, other)
+}

@@ -1,22 +1,25 @@
 {
-  "lookup_id": "4e3e81b6",
-  "initiator_id": "9b8304fc",
-  "target_hex": "e057fdbbb17a67d03349cc04d8515e56bd8004516eb032f7d8dc671bdfa4f4a7",
+  "lookup_id": "3b38502b",
+  "initiator_id": "96f06311",
+  "target_hex": "58d0102f3767ae402083e2b39888e28c819d8ade36d3e4079a9f398d3cbaac11",
   "success": true,
-  "rpcs": 9,
-  "iterations": 3,
+  "target_found": true,
+  "rpcs": 12,
+  "iterations": 4,
   "timeouts_hex": [
-    "aaf708d2331f81f2068925a89fcef2c2921627a492fca5e14d52bcdc482e62d6"
+    "7973519c004b74b1b650741136e81e713ac3f51d5c934faeb0b55351c5c6f008",
+    "793766b0ee206b57742bf98efe0f88b7e88a081414a2af496afaf3048a1bf721",
+    "427ef7dc33d0c0043d2529452edb812bf014eb7adf90b7be216df349338a94f2"
   ],
-  "duration_ms": 2,
+  "duration_ms": 6,
   "closest_hex": [
-    "e057fdbbb17a67d03349cc04d8515e56bd8004516eb032f7d8dc671bdfa4f4a7",
-    "e43eef7a9b3e87ea91755a9900ff566a7510808c252fc92ff41ad3cfb45acc06",
-    "e7ffcd4aae0284a89617dea3f497bc72c1f076597f31af0d7029f51b9db78cee",
-    "f1831f8764a4d683a851fc0dd3961bb1710406020a5010ba8f4ad009da42da4b"
+    "58d0102f3767ae402083e2b39888e28c819d8ade36d3e4079a9f398d3cbaac11",
+    "5f81066c40b872e7ebc22801904977f96ea0b2965ca8f267766592a61d558ffb",
+    "427ef7dc33d0c0043d2529452edb812bf014eb7adf90b7be216df349338a94f2",
+    "44f26c8c84c64a9ec8424ba49768996934d81e05291d2fce5b0b54da3acc1742"
   ],
-  "table_size_before": 5,
+  "table_size_before": 4,
   "table_size_after": 8,
-  "timestamp": "2026-10-26T06:16:04Z",
-  "target_in_table_before": false
+  "target_in_table_before": false,
+  "timestamp": "2026-10-26T15:02:22Z"
 }
