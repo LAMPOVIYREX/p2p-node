@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/LAMPOVIYREX/p2p-node/internal/dht"
 	"github.com/LAMPOVIYREX/p2p-node/internal/logging"
 	"github.com/LAMPOVIYREX/p2p-node/internal/protocol"
 	"github.com/LAMPOVIYREX/p2p-node/internal/routing"
@@ -98,6 +99,95 @@ func (n *Node) HandleFindNode(ctx *rpc.ConnContext, f *transport.Frame) *transpo
 		Responder:    n.SelfContactWire(),
 		TargetNodeID: req.TargetNodeID,
 		Contacts:     wires,
+	})
+}
+
+// HandleStore принимает подписанную запись и сохраняет её локально.
+func (n *Node) HandleStore(ctx *rpc.ConnContext, f *transport.Frame) *transport.Frame {
+	var req protocol.StoreRequestPayload
+	if err := protocol.DecodePayload(f.Payload, &req); err != nil {
+		return n.errorFrame(f.RequestID, "bad_payload", err.Error())
+	}
+
+	sender, err := contactFromWire(req.Sender)
+	if err == nil {
+		n.table.AddOrUpdate(sender)
+	}
+
+	rec, err := dht.NodeRecordFromWire(req.Record)
+	if err != nil {
+		return n.buildFrame(protocol.MsgStoreResponse, f.RequestID, protocol.StoreResponsePayload{
+			Success: false, Error: "bad_record_format",
+		})
+	}
+
+	if err := rec.Validate(time.Now()); err != nil {
+		n.logger.Debug("store: record validation failed", "err", err.Error())
+		return n.buildFrame(protocol.MsgStoreResponse, f.RequestID, protocol.StoreResponsePayload{
+			Success: false, Error: "invalid_record",
+		})
+	}
+
+	if err := n.storage.Put(rec); err != nil {
+		return n.buildFrame(protocol.MsgStoreResponse, f.RequestID, protocol.StoreResponsePayload{
+			Success: false, Error: "storage_rejected",
+		})
+	}
+
+	keyBytes := rec.DHTKey()
+	n.logger.Debug("stored record", "key", hex.EncodeToString(keyBytes[:]))
+	return n.buildFrame(protocol.MsgStoreResponse, f.RequestID, protocol.StoreResponsePayload{Success: true})
+}
+
+// HandleFindValue ищет запись локально, а при отсутствии — возвращает
+// ближайших известных узлов (fallback на логику FIND_NODE).
+func (n *Node) HandleFindValue(ctx *rpc.ConnContext, f *transport.Frame) *transport.Frame {
+	var req protocol.FindValueRequestPayload
+	if err := protocol.DecodePayload(f.Payload, &req); err != nil {
+		return n.errorFrame(f.RequestID, "bad_payload", err.Error())
+	}
+
+	sender, err := contactFromWire(req.Sender)
+	if err == nil {
+		n.table.AddOrUpdate(sender)
+	}
+
+	var target [32]byte
+	b, err := hex.DecodeString(req.Key)
+	if err != nil || len(b) != 32 {
+		return n.errorFrame(f.RequestID, "bad_key", "key must be 32-byte hex")
+	}
+	copy(target[:], b)
+
+	// Ищем локально
+	if rec, ok := n.storage.Get(target); ok {
+		n.logger.Debug("find_value: found locally", "key", req.Key)
+		wire := rec.ToWire()
+		return n.buildFrame(protocol.MsgFindValueResponse, f.RequestID, protocol.FindValueResponsePayload{
+			Responder: n.SelfContactWire(),
+			Key:       req.Key,
+			Record:    &wire,
+			Contacts:  nil,
+		})
+	}
+
+	// Fallback: возвращаем ближайших соседей.
+	// Для этого используем NodeID, сформированный из target, чтобы
+	// отсортировать контакты по XOR-расстоянию до ключа.
+	var targetNodeID routing.NodeID
+	copy(targetNodeID[:], target[:])
+	closest := n.table.FindClosest(targetNodeID, n.cfg.KBucketSize)
+	wires := make([]protocol.ContactWire, 0, len(closest))
+	for _, c := range closest {
+		wires = append(wires, contactToWire(c))
+	}
+
+	n.logger.Debug("find_value: not found, returning closest", "key", req.Key, "n", len(wires))
+	return n.buildFrame(protocol.MsgFindValueResponse, f.RequestID, protocol.FindValueResponsePayload{
+		Responder: n.SelfContactWire(),
+		Key:       req.Key,
+		Record:    nil,
+		Contacts:  wires,
 	})
 }
 

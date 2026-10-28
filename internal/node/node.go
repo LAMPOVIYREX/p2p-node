@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/LAMPOVIYREX/p2p-node/internal/dht"
 	"github.com/LAMPOVIYREX/p2p-node/internal/identity"
 	"github.com/LAMPOVIYREX/p2p-node/internal/logging"
 	"github.com/LAMPOVIYREX/p2p-node/internal/protocol"
@@ -24,6 +25,7 @@ type Node struct {
 	server     *transport.Server
 	disp       *rpc.Dispatcher
 	logger     *slog.Logger
+	storage    *dht.Storage
 	listenPort int // реальный порт после Start (важно при cfg.ListenPort == 0)
 }
 
@@ -58,13 +60,13 @@ func New(cfg *Config, logger *slog.Logger) (*Node, error) {
 		id.NodeID, cfg.KBucketSize, n.pingContact,
 		logging.WithComponent(logger, "routing"),
 	)
-	n.disp = rpc.NewDispatcher(
-		map[uint8]rpc.HandlerFunc{
-			protocol.MsgPing:            n.HandlePing,
-			protocol.MsgFindNodeRequest: n.HandleFindNode,
-		},
-		logging.WithComponent(logger, "rpc"),
-	)
+	n.storage = dht.NewStorage()
+	n.disp = rpc.NewDispatcher(map[uint8]rpc.HandlerFunc{
+		protocol.MsgPing:             n.HandlePing,
+		protocol.MsgFindNodeRequest:  n.HandleFindNode,
+		protocol.MsgStoreRequest:     n.HandleStore,     // NEW
+		protocol.MsgFindValueRequest: n.HandleFindValue, // NEW
+	}, logging.WithComponent(logger, "rpc"))
 	pool.SetOnNewConn(n.handleOutgoingConn)
 	return n, nil
 }
@@ -146,6 +148,12 @@ func (n *Node) ShortID() string {
 	return fmt.Sprintf("%x", n.self.NodeID[:4])
 }
 
+// Identity возвращает identity узла (ключи и NodeID).
+// Возвращает указатель — caller может использовать Private для подписи.
+func (n *Node) Identity() *identity.Identity {
+	return n.self
+}
+
 func (n *Node) SelfContact() *routing.Contact {
 	return &routing.Contact{
 		NodeID:            n.self.NodeID,
@@ -170,6 +178,7 @@ func (n *Node) Stop() {
 		_ = n.server.Close()
 	}
 	n.pool.CloseAll()
+	n.storage.Close()
 	n.logger.Debug("node stopped")
 }
 

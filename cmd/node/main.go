@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -14,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/LAMPOVIYREX/p2p-node/internal/dht"
 	"github.com/LAMPOVIYREX/p2p-node/internal/logging"
 	"github.com/LAMPOVIYREX/p2p-node/internal/node"
 	"github.com/LAMPOVIYREX/p2p-node/internal/routing"
@@ -25,6 +27,8 @@ func main() {
 	dumpAll := flag.Bool("dump-tables", false, "aggregate all state/node-*/table.json and exit")
 	stateDir := flag.String("state-dir", "", "state directory for --dump-tables (default: ./state)")
 	waitMs := flag.Int("wait-ms", 3000, "ms to wait for bootstrap convergence before lookup")
+	putAlias := flag.String("put", "", "publish NodeRecord with alias and exit")
+	getAlias := flag.String("get", "", "lookup NodeRecord by alias and exit")
 	flag.Parse()
 
 	if *dumpAll {
@@ -60,6 +64,47 @@ func main() {
 		return
 	}
 
+	if *putAlias != "" || *getAlias != "" {
+		if err := n.Start(); err != nil {
+			logger.Error("start", "err", err)
+			os.Exit(1)
+		}
+		if err := n.BootstrapPeers(); err != nil {
+			logger.Warn("bootstrap failed", "err", err)
+		}
+		time.Sleep(2 * time.Second) // дать сети сойтись
+
+		if *putAlias != "" {
+			rec := dht.NewNodeRecord(n.Identity(), []string{n.SelfContact().Addr()}, 1, 5*time.Minute, *putAlias)
+			if err := rec.Sign(n.Identity().Private); err != nil {
+				logger.Error("sign", "err", err)
+				os.Exit(1)
+			}
+			if err := n.PutRecord(rec); err != nil {
+				logger.Error("put", "err", err)
+				os.Exit(1)
+			}
+			fmt.Printf("put ok: alias=%s key=%x\n", *putAlias, rec.DHTKey())
+			n.Stop()
+			return
+		}
+		if *getAlias != "" {
+			keyData := append([]byte("alias:"), []byte(dht.NormalizeAlias(*getAlias))...)
+			key := sha256.Sum256(keyData)
+			rec, err := n.GetRecord(key)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "not found: %v\n", err)
+				n.Stop()
+				os.Exit(1)
+			}
+			wire := rec.ToWire()
+			out, _ := json.MarshalIndent(wire, "", "  ")
+			fmt.Println(string(out))
+			n.Stop()
+			return
+		}
+	}
+
 	if err := n.Run(ctx); err != nil {
 		logger.Error("run", "err", err)
 		os.Exit(1)
@@ -72,8 +117,8 @@ type lookupReport struct {
 	LookupID      string   `json:"lookup_id"`
 	InitiatorID   string   `json:"initiator_id"`
 	TargetHex     string   `json:"target_hex"`
-	Success       bool     `json:"success"`         // цель найдена в closest
-	TargetFound   bool     `json:"target_found"`    // явный дубль для читаемости (== Success)
+	Success       bool     `json:"success"`      // цель найдена в closest
+	TargetFound   bool     `json:"target_found"` // явный дубль для читаемости (== Success)
 	RPCs          int      `json:"rpcs"`
 	Iterations    int      `json:"iterations"`
 	Timeouts      []string `json:"timeouts_hex"`
@@ -127,7 +172,7 @@ func runLookupMode(ctx context.Context, n *node.Node, targetHex string, waitMs i
 		InitiatorID:   n.ShortID(),
 		TargetHex:     targetHex,
 		Success:       res.Success,
-		TargetFound:   res.Success, // теперь строго цель в closest
+		TargetFound:   res.Success,
 		RPCs:          res.RPCs,
 		Iterations:    res.Iterations,
 		DurationMs:    res.Duration.Milliseconds(),
