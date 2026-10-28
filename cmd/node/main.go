@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -47,6 +48,14 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 	logger := logging.New(cfg.LogLevel)
+
+	// --- Режимы PUT / GET (эфемерный узел) ---
+	if *putAlias != "" || *getAlias != "" {
+		runDhtCliMode(cfg, logger, *putAlias, *getAlias)
+		return
+	}
+
+	// --- Обычный запуск или LOOKUP ---
 	n, err := node.New(cfg, logger)
 	if err != nil {
 		logger.Error("create node", "err", err)
@@ -64,50 +73,62 @@ func main() {
 		return
 	}
 
-	if *putAlias != "" || *getAlias != "" {
-		if err := n.Start(); err != nil {
-			logger.Error("start", "err", err)
-			os.Exit(1)
-		}
-		if err := n.BootstrapPeers(); err != nil {
-			logger.Warn("bootstrap failed", "err", err)
-		}
-		time.Sleep(2 * time.Second) // дать сети сойтись
-
-		if *putAlias != "" {
-			rec := dht.NewNodeRecord(n.Identity(), []string{n.SelfContact().Addr()}, 1, 5*time.Minute, *putAlias)
-			if err := rec.Sign(n.Identity().Private); err != nil {
-				logger.Error("sign", "err", err)
-				os.Exit(1)
-			}
-			if err := n.PutRecord(rec); err != nil {
-				logger.Error("put", "err", err)
-				os.Exit(1)
-			}
-			fmt.Printf("put ok: alias=%s key=%x\n", *putAlias, rec.DHTKey())
-			n.Stop()
-			return
-		}
-		if *getAlias != "" {
-			keyData := append([]byte("alias:"), []byte(dht.NormalizeAlias(*getAlias))...)
-			key := sha256.Sum256(keyData)
-			rec, err := n.GetRecord(key)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "not found: %v\n", err)
-				n.Stop()
-				os.Exit(1)
-			}
-			wire := rec.ToWire()
-			out, _ := json.MarshalIndent(wire, "", "  ")
-			fmt.Println(string(out))
-			n.Stop()
-			return
-		}
-	}
-
 	if err := n.Run(ctx); err != nil {
 		logger.Error("run", "err", err)
 		os.Exit(1)
+	}
+}
+
+func runDhtCliMode(cfg *node.Config, logger *slog.Logger, putAlias, getAlias string) {
+	// Эфемерный узел: отдельный state_dir и порт 0
+	tmpState := fmt.Sprintf("./state/tmp-%d", time.Now().UnixNano())
+	cfg.NodeStateDir = tmpState
+	cfg.ListenPort = 0
+
+	tmpNode, err := node.New(cfg, logger)
+	if err != nil {
+		logger.Error("create ephemeral node", "err", err)
+		os.Exit(1)
+	}
+	if err := tmpNode.Start(); err != nil {
+		logger.Error("start ephemeral node", "err", err)
+		os.Exit(1)
+	}
+	defer func() {
+		tmpNode.Stop()
+		os.RemoveAll(tmpState)
+	}()
+
+	if err := tmpNode.BootstrapPeers(); err != nil {
+		logger.Warn("bootstrap failed", "err", err)
+	}
+	time.Sleep(2 * time.Second)
+
+	if putAlias != "" {
+		rec := dht.NewNodeRecord(tmpNode.Identity(), []string{tmpNode.SelfContact().Addr()}, 1, 5*time.Minute, putAlias)
+		if err := rec.Sign(tmpNode.Identity().Private); err != nil {
+			logger.Error("sign", "err", err)
+			os.Exit(1)
+		}
+		if err := tmpNode.PutRecord(rec); err != nil {
+			logger.Error("put", "err", err)
+			os.Exit(1)
+		}
+		fmt.Printf("put ok: alias=%s key=%x\n", putAlias, rec.DHTKey())
+		return
+	}
+
+	if getAlias != "" {
+		keyData := append([]byte("alias:"), []byte(dht.NormalizeAlias(getAlias))...)
+		key := sha256.Sum256(keyData)
+		rec, err := tmpNode.GetRecord(key)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "not found: %v\n", err)
+			os.Exit(1)
+		}
+		wire := rec.ToWire()
+		out, _ := json.MarshalIndent(wire, "", "  ")
+		fmt.Println(string(out))
 	}
 }
 

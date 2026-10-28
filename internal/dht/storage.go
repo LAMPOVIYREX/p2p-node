@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/LAMPOVIYREX/p2p-node/internal/identity"
 )
 
 // Storage — in-memory хранилище DHT-записей с автоматической очисткой по TTL.
@@ -105,4 +107,19 @@ func (s *Storage) cleanupExpired() {
 			delete(s.records, k)
 		}
 	}
+}
+
+// GetOwnedRecords возвращает записи, владельцем которых является self.
+// Нужно для автоматического переопубликования.
+func (s *Storage) GetOwnedRecords(self identity.NodeID) []*NodeRecord { // <--- identity.NodeID
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var result []*NodeRecord
+	for _, rec := range s.records {
+		if rec.NodeID == self {
+			result = append(result, rec)
+		}
+	}
+	return result
 }

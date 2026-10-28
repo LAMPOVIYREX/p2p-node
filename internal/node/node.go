@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+    "time"
 
 	"github.com/LAMPOVIYREX/p2p-node/internal/dht"
 	"github.com/LAMPOVIYREX/p2p-node/internal/identity"
@@ -26,7 +27,8 @@ type Node struct {
 	disp       *rpc.Dispatcher
 	logger     *slog.Logger
 	storage    *dht.Storage
-	listenPort int // реальный порт после Start (важно при cfg.ListenPort == 0)
+	listenPort int 
+    stopRepublish chan struct{}
 }
 
 func New(cfg *Config, logger *slog.Logger) (*Node, error) {
@@ -98,7 +100,38 @@ func (n *Node) Start() error {
 	}
 	n.logger.Info("tcp server started", "addr", srv.Addr().String())
 	go srv.Serve()
-	return nil
+    n.stopRepublish = make(chan struct{})
+    go n.republishLoop()
+    
+    return nil
+}
+
+func (n *Node) republishLoop() {
+    ticker := time.NewTicker(2 * time.Minute) // для тестов и экспериментов
+    defer ticker.Stop()
+    for {
+        select {
+        case <-n.stopRepublish:
+            return
+        case <-ticker.C:
+            n.republishOwnedRecords()
+        }
+    }
+}
+
+func (n *Node) republishOwnedRecords() {
+    records := n.storage.GetOwnedRecords(n.self.NodeID)
+    for _, rec := range records {
+        // Если осталось меньше половины TTL — продлеваем и публикуем заново
+        now := uint64(time.Now().UnixMilli())
+        ttl := rec.ExpiresAt - rec.IssuedAt
+        if rec.ExpiresAt-now < ttl/2 {
+            newRec := dht.NewNodeRecord(n.self, rec.Addresses, rec.SequenceNumber+1, 5*time.Minute, rec.Alias)
+            _ = newRec.Sign(n.self.Private)
+            _ = n.PutRecord(newRec)
+            n.logger.Info("republished record", "alias", rec.Alias)
+        }
+    }
 }
 
 // BootstrapPeers запускает присоединение, если в конфиге есть peers.
@@ -174,6 +207,9 @@ func (n *Node) SelfContactWire() protocol.ContactWire {
 // новые исходящие. NodeID и state_dir сохраняются — при следующем
 // создании узла из того же каталога идентичность восстановится.
 func (n *Node) Stop() {
+    if n.stopRepublish != nil {
+        close(n.stopRepublish)
+    }
 	if n.server != nil {
 		_ = n.server.Close()
 	}
