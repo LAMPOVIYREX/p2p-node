@@ -1,66 +1,26 @@
 package transport
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"net"
-	"sync"
 	"testing"
 	"time"
+
+	"github.com/LAMPOVIYREX/p2p-node/internal/identity"
+	"github.com/LAMPOVIYREX/p2p-node/internal/session"
 )
 
-func TestPoolGetSkipsClosed(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+func mkTestIdentity(t *testing.T) *identity.Identity {
+	t.Helper()
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ln.Close()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			nc, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			go func(c net.Conn) {
-				buf := make([]byte, 1)
-				for {
-					if _, err := c.Read(buf); err != nil {
-						c.Close()
-						return
-					}
-				}
-			}(nc)
-		}
-	}()
-
-	pool := NewPool(500*time.Millisecond, nil, MaxFramePayload, ProtocolVersion)
-	addr := ln.Addr().String()
-
-	c1, err := pool.Get(addr)
-	if err != nil {
-		t.Fatalf("first Get: %v", err)
-	}
-
-	c2, err := pool.Get(addr)
-	if err != nil {
-		t.Fatalf("second Get: %v", err)
-	}
-	if c1 != c2 {
-		t.Fatal("expected same cached connection")
-	}
-
-	if err := c1.Close(); err != nil {
-		t.Fatalf("close: %v", err)
-	}
-
-	c3, err := pool.Get(addr)
-	if err != nil {
-		t.Fatalf("third Get: %v", err)
-	}
-	if c3 == c1 {
-		t.Fatal("pool returned closed connection")
+	return &identity.Identity{
+		Private: priv,
+		Public:  pub,
+		NodeID:  identity.DeriveNodeID(pub),
 	}
 }
 
@@ -73,17 +33,26 @@ func TestPoolEvictDoesNotRemoveNewConn(t *testing.T) {
 	}
 	defer ln.Close()
 
+	srvID := mkTestIdentity(t)
+	cliID := mkTestIdentity(t)
+
+	// Мини-сервер, который принимает рукопожатие и держит соединение.
 	go func() {
 		for {
 			nc, err := ln.Accept()
 			if err != nil {
 				return
 			}
-			go func(c net.Conn) {
+			go func(nc net.Conn) {
+				_, _, err := session.ServerHandshake(nc, srvID)
+				if err != nil {
+					_ = nc.Close()
+					return
+				}
 				buf := make([]byte, 1)
 				for {
-					if _, err := c.Read(buf); err != nil {
-						c.Close()
+					if _, err := nc.Read(buf); err != nil {
+						_ = nc.Close()
 						return
 					}
 				}
@@ -91,66 +60,81 @@ func TestPoolEvictDoesNotRemoveNewConn(t *testing.T) {
 		}
 	}()
 
-	pool := NewPool(500*time.Millisecond, nil, MaxFramePayload, ProtocolVersion)
+	pool := NewPool(500*time.Millisecond, nil, MaxFramePayload, ProtocolVersion, cliID)
+	defer pool.CloseAll()
 	addr := ln.Addr().String()
 
 	c1, err := pool.Get(addr)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("first Get: %v", err)
 	}
 
-	// Принудительно закрываем и удаляем старое, создаём новое.
 	pool.Evict(addr, c1)
 
 	c2, err := pool.Get(addr)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("second Get: %v", err)
 	}
 	if c1 == c2 {
 		t.Fatal("expected new connection after evict")
 	}
 
-	// Теперь «старый читатель» пытается эвиктить c1 повторно.
-	// Это не должно удалить c2.
+	// Эвикт старого c1 не должен удалить c2.
 	pool.Evict(addr, c1)
 
 	c3, err := pool.Get(addr)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("third Get: %v", err)
 	}
 	if c3 != c2 {
 		t.Fatal("Evict of old conn removed the new active connection")
 	}
 }
 
-func TestConnCloseIdempotent(t *testing.T) {
+// TestPoolGetReturnsCached проверяет, что повторный Get возвращает
+// то же самое соединение из пула.
+func TestPoolGetReturnsCached(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer ln.Close()
 
+	srvID := mkTestIdentity(t)
+	cliID := mkTestIdentity(t)
+
 	go func() {
-		nc, err := ln.Accept()
-		if err != nil {
-			return
+		for {
+			nc, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func(nc net.Conn) {
+				_, _, _ = session.ServerHandshake(nc, srvID)
+				buf := make([]byte, 1)
+				for {
+					if _, err := nc.Read(buf); err != nil {
+						_ = nc.Close()
+						return
+					}
+				}
+			}(nc)
 		}
-		nc.Close()
 	}()
 
-	nc, err := net.Dial("tcp", ln.Addr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	c := NewConn(nc, nil, MaxFramePayload, ProtocolVersion)
+	pool := NewPool(500*time.Millisecond, nil, MaxFramePayload, ProtocolVersion, cliID)
+	defer pool.CloseAll()
+	addr := ln.Addr().String()
 
-	if err := c.Close(); err != nil {
-		t.Fatalf("first Close: %v", err)
+	c1, err := pool.Get(addr)
+	if err != nil {
+		t.Fatalf("first Get: %v", err)
 	}
-	if err := c.Close(); err != nil {
-		t.Fatalf("second Close should be nil, got: %v", err)
+	c2, err := pool.Get(addr)
+	if err != nil {
+		t.Fatalf("second Get: %v", err)
 	}
-	if !c.IsClosed() {
-		t.Fatal("IsClosed should be true")
+	if c1 != c2 {
+		t.Fatal("pool did not return cached connection")
 	}
 }

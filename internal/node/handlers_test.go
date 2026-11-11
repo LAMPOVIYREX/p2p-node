@@ -2,11 +2,14 @@ package node
 
 import (
 	"encoding/hex"
+	"errors"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/LAMPOVIYREX/p2p-node/internal/protocol"
 	"github.com/LAMPOVIYREX/p2p-node/internal/routing"
+	"github.com/LAMPOVIYREX/p2p-node/internal/rpc"
 	"github.com/LAMPOVIYREX/p2p-node/internal/transport"
 )
 
@@ -142,4 +145,41 @@ func TestT2_11_FindNodeSorting(t *testing.T) {
 	if !found {
 		t.Fatal("sender not added to table")
 	}
+}
+
+// T1.10: ответ с чужим request_id не принимается как ответ
+// на ожидающий запрос. Проверяется через реальный шифрованный канал.
+func TestT1_10_RequestIDCorrelation(t *testing.T) {
+	a := startTestNode(t, mkCfg(t))
+	b := startTestNode(t, mkCfg(t))
+
+	// Патчим обработчик PING на узле A, чтобы он возвращал PONG
+	// с испорченным request_id — симуляция атаки.
+	origPing := a.disp.Handlers()[protocol.MsgPing]
+	if origPing == nil {
+		t.Fatal("no handler for MsgPing")
+	}
+	a.disp.SetHandler(protocol.MsgPing, func(ctx *rpc.ConnContext, f *transport.Frame) *transport.Frame {
+		resp := origPing(ctx, f)
+		if resp != nil {
+			resp.RequestID[0] ^= 0xFF
+		}
+		return resp
+	})
+
+	// B отправляет PING с таймаутом 500 мс.
+	// A отвечает, но с чужим request_id → B не должен принять ответ.
+	_, err := b.rpc.SendRequest(
+		a.Addr().String(),
+		protocol.MsgPing,
+		protocol.PingPayload{Sender: b.SelfContactWire(), TimestampMs: 1},
+		500*time.Millisecond,
+	)
+	if err == nil {
+		t.Fatal("received response with wrong request_id — should have timed out")
+	}
+	if !errors.Is(err, rpc.ErrRPCTimeout) {
+		t.Fatalf("want ErrRPCTimeout, got %v", err)
+	}
+	t.Logf("correctly rejected response with foreign request_id: %v", err)
 }

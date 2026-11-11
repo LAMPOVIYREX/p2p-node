@@ -60,3 +60,11 @@ func (d *Dispatcher) sendError(ctx *ConnContext, rid [16]byte, code, msg string)
 	_ = ctx.Conn.WriteFrame(resp, 3*time.Second)
 	_ = ctx.Conn.Close()
 }
+
+func (d *Dispatcher) Handlers() map[uint8]HandlerFunc {
+	return d.handlers
+}
+
+func (d *Dispatcher) SetHandler(t uint8, h HandlerFunc) {
+	d.handlers[t] = h
+}

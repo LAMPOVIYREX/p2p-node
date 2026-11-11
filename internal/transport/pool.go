@@ -6,7 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LAMPOVIYREX/p2p-node/internal/identity"
 	"github.com/LAMPOVIYREX/p2p-node/internal/logging"
+	"github.com/LAMPOVIYREX/p2p-node/internal/session"
 )
 
 type Pool struct {
@@ -17,6 +19,7 @@ type Pool struct {
 	onNew           func(*Conn)
 	maxPayload      uint32
 	expectedVersion uint8
+	identity        *identity.Identity
 }
 
 func NewPool(
@@ -24,6 +27,7 @@ func NewPool(
 	logger *slog.Logger,
 	maxPayload uint32,
 	expectedVersion uint8,
+	id *identity.Identity,
 ) *Pool {
 	if logger == nil {
 		logger = logging.Discard()
@@ -34,9 +38,11 @@ func NewPool(
 		logger:          logger,
 		maxPayload:      maxPayload,
 		expectedVersion: expectedVersion,
+		identity:        id,
 	}
 }
 
+// SetOnNewConn ...
 func (p *Pool) SetOnNewConn(fn func(*Conn)) {
 	p.mu.Lock()
 	p.onNew = fn
@@ -51,8 +57,6 @@ func (p *Pool) Get(addr string) (*Conn, error) {
 			p.logger.Debug("pool hit", "addr", addr)
 			return c, nil
 		}
-		// Соединение мертво — удаляем
-		_ = c.Close()
 		delete(p.conns, addr)
 	}
 	onNew := p.onNew
@@ -64,11 +68,25 @@ func (p *Pool) Get(addr string) (*Conn, error) {
 		p.logger.Warn("dial failed", "addr", addr, "err", err.Error())
 		return nil, err
 	}
-	c := NewConn(nc, p.logger, p.maxPayload, p.expectedVersion)
+
+	p.logger.Debug("tcp connected, starting handshake", "addr", addr)
+	sess, err := session.ClientHandshake(nc, p.identity)
+	if err != nil {
+		p.logger.Warn("handshake failed", "addr", addr, "err", err.Error())
+		_ = nc.Close()
+		return nil, err
+	}
+	p.logger.Debug("handshake ok (client)",
+		"addr", addr,
+		"peer_id", logging.ShortBytes(sess.PeerID[:]),
+		"session_id", sess.ID,
+	)
+
+	secureConn := session.NewSecureConn(nc, sess)
+	c := NewConn(secureConn, p.logger, p.maxPayload, p.expectedVersion)
 
 	p.mu.Lock()
 	if existing, ok := p.conns[addr]; ok {
-		// Кто-то успел создать соединение раньше нас — используем его
 		p.mu.Unlock()
 		_ = c.Close()
 		return existing, nil
@@ -76,7 +94,6 @@ func (p *Pool) Get(addr string) (*Conn, error) {
 	p.conns[addr] = c
 	p.mu.Unlock()
 
-	p.logger.Debug("connection established", "addr", addr)
 	if onNew != nil {
 		go onNew(c)
 	}
@@ -93,8 +110,6 @@ func (p *Pool) Evict(addr string, c *Conn) {
 	}
 }
 
-// CloseAll закрывает все соединения в пуле. Используется при штатной
-// остановке узла и в тестах, где нужен чистый перезапуск.
 func (p *Pool) CloseAll() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
