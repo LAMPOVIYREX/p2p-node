@@ -3,6 +3,7 @@ package session
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -10,7 +11,7 @@ import (
 	"github.com/LAMPOVIYREX/p2p-node/internal/crypto"
 )
 
-const maxEncryptedFrame = 2 * 1024 * 1024 // 2 MB (с запасом над MAX_FRAME_PAYLOAD)
+const maxEncryptedFrame = 2 * 1024 * 1024 // 2 MB
 
 // SecureConn оборачивает net.Conn и обеспечивает шифрование
 // ChaCha20-Poly1305 с монотонным счётчиком nonce.
@@ -89,6 +90,15 @@ func (c *SecureConn) readNextFrame() error {
 	if _, err := io.ReadFull(c.Conn, nonce); err != nil {
 		return err
 	}
+
+	// Проверка монотонности: nonce должен быть строго больше recvCounter.
+	// Защита от replay и переупорядочивания кадров.
+	recvNonce := binary.BigEndian.Uint64(nonce[4:])
+	if recvNonce <= c.session.recvCounter {
+		return fmt.Errorf("replay detected: nonce %d <= recvCounter %d",
+			recvNonce, c.session.recvCounter)
+	}
+	c.session.recvCounter = recvNonce
 
 	ciphertext := make([]byte, n)
 	if _, err := io.ReadFull(c.Conn, ciphertext); err != nil {
